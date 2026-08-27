@@ -67,8 +67,16 @@ reuses the exact same code.
 - Sidecars listen on the VM's loopback / docker network only; nothing but the proxy reaches
   them. The proxy is the only port exposed (443 via a reverse proxy — Caddy or nginx — that
   terminates TLS).
-- The proxy also supports a **stdio** transport (same core, different entry point) for local
-  development and the test harness.
+- **Two supported deployment modes**, same code, same sidecars, same config:
+  - **VM mode** (above): proxy over Streamable HTTP on a dedicated VM; Zendesk credentials
+    exist only on the VM. This is the mode that delivers guarantee 2 in full.
+  - **Laptop mode**: `docker compose --profile laptop up` (Presidio + GLiNER, no Caddy) and the
+    proxy run locally over **stdio**, registered in `.mcp.json` with `command`. Zendesk
+    credentials then live in the developer's environment; guarantee 2 weakens to "the proxy is
+    the only configured path" (equivalent to today's exposure). The sanitization guarantee is
+    unchanged. Fits a 16 GB laptop (~5–6 GB with Docker Desktop overhead).
+  Both modes are documented in the README and exercised in CI; the startup check against the
+  pinned GLiNER model id catches sidecar version drift between laptops.
 - The presidio-anonymizer container is included for parity with the spec, but placeholder
   application is done in TypeScript (see §6.4) so both passes share one replacement engine.
   The anonymizer is therefore optional and may be dropped in build step 2 if it adds nothing.
@@ -356,11 +364,19 @@ stray `.env`. Upstream stderr is captured and logged at debug level after passin
 same redaction guard as the proxy's own logs (it prints the connected user's name and email at
 startup).
 
-`.mcp.json` on a laptop:
+`.mcp.json`, VM mode:
 
 ```json
 { "mcpServers": { "zendesk": { "type": "http", "url": "https://<vm>/mcp",
     "headers": { "Authorization": "Bearer ${ZSAN_TOKEN}" } } } }
+```
+
+`.mcp.json`, laptop mode (credentials come from the developer's `.env`, loaded by the proxy —
+never from `.mcp.json`):
+
+```json
+{ "mcpServers": { "zendesk": { "type": "stdio", "command": "bun",
+    "args": ["run", "C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/src/server/stdio.ts"] } } }
 ```
 
 ## 10. Logging
@@ -453,8 +469,9 @@ ZendeskSanitizing/
 4. **GLiNER sidecar** and detector; unification across passes; fixture scorecard; e2e suite
    green with both passes.
 5. **Outgoing**: `add_ticket_comment` forcing and placeholder rejection.
-6. **Deploy**: VM setup script, compose, Caddy, bearer tokens, `.mcp.json` snippet for
-   developers; CI with self-hosted runner; branch protection, CODEOWNERS; `v0.1.0`.
+6. **Deploy**: laptop mode (compose `laptop` profile, README walkthrough, stdio `.mcp.json`)
+   and VM mode (setup script, compose `vm` profile with Caddy, bearer tokens, HTTP
+   `.mcp.json`); CI with self-hosted runner; branch protection, CODEOWNERS; `v0.1.0`.
 7. **Bake-off** (optional, after v0.1.0): Ollama detector against the same fixtures to
    quantify the indirect-identifier gap and decide whether a GPU host is warranted.
 
