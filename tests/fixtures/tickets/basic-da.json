@@ -1,0 +1,44 @@
+{
+  "ticket": {
+    "id": 4711,
+    "url": "https://acme.zendesk.com/api/v2/tickets/4711.json",
+    "subject": "Faktura fra Mette Sørensen bliver ikke læst",
+    "raw_subject": "Faktura fra Mette Sørensen bliver ikke læst",
+    "description": "Hej, jeg hedder Mette Sørensen fra Contoso ApS. Mit cpr er 010190-1234.",
+    "status": "open",
+    "priority": "normal",
+    "requester_id": 900001,
+    "submitter_id": 900001,
+    "assignee_id": 100002,
+    "organization_id": 500003,
+    "tags": ["document_capture", "mette_soerensen"],
+    "custom_fields": [{ "id": 360001, "value": "Contoso ApS" }, { "id": 360002, "value": null }, { "id": 360003, "value": 42 }],
+    "via": { "channel": "email", "source": { "from": { "address": "mette@contoso.example", "name": "Mette Sørensen" }, "to": { "address": "support@acme.example" }, "rel": null } },
+    "created_at": "2026-01-05T09:12:00Z",
+    "metadata": { "system": { "client": "Mozilla/5.0", "ip_address": "10.1.2.3", "location": "Aarhus, Denmark", "latitude": 56.1, "longitude": 10.2 }, "custom": {} },
+    "requester": { "id": 900001, "name": "Mette Sørensen", "email": "mette@contoso.example" }
+  },
+  "comments": [
+    {
+      "id": 1, "author_id": 900001, "public": true,
+      "body": "Vedhæftet faktura. Ring evt. på 12 34 56 78.",
+      "html_body": "<p>Vedhæftet faktura. Ring evt. på 12 34 56 78.</p>",
+      "plain_body": "Vedhæftet faktura. Ring evt. på 12 34 56 78.",
+      "attachments": [{ "id": 77, "file_name": "faktura_MetteSørensen.pdf", "content_url": "https://acme.zendesk.com/attachments/token/abc/?name=faktura_MetteS%C3%B8rensen.pdf", "content_type": "application/pdf", "size": 12345, "thumbnails": [] }],
+      "via": { "channel": "email", "source": { "from": { "address": "mette@contoso.example", "name": "Mette Sørensen" }, "to": {}, "rel": null } },
+      "created_at": "2026-01-05T09:12:00Z"
+    },
+    {
+      "id": 2, "author_id": 100002, "public": false,
+      "body": "Intern note: kunden er CFO hos Contoso, se sag hos Lars Nielsen.",
+      "html_body": "<p>Intern note</p>",
+      "plain_body": "Intern note: kunden er CFO hos Contoso, se sag hos Lars Nielsen.",
+      "attachments": [],
+      "created_at": "2026-01-05T10:00:00Z"
+    }
+  ],
+  "expected": {
+    "absent": ["Mette Sørensen", "Mette", "Sørensen", "mette@contoso.example", "010190-1234", "12 34 56 78", "Contoso", "Lars Nielsen", "10.1.2.3", "Aarhus, Denmark", "attachments/token"],
+    "present": ["Vedhæftet faktura", "4711", "open", "Intern note"]
+  }
+}
