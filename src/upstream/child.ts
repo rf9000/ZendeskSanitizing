@@ -44,6 +44,10 @@ export async function spawnUpstream(opts: SpawnOptions): Promise<UpstreamClient>
     buffer = lines.pop() ?? "";
     for (const line of lines) if (line.trim()) opts.onStderrLine(`[upstream] ${line}`);
   });
+  transport.stderr?.on("end", () => {
+    if (buffer.trim()) opts.onStderrLine(`[upstream] ${buffer}`);
+    buffer = "";
+  });
 
   return {
     async listTools() {

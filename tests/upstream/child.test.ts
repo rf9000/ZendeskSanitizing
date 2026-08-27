@@ -22,10 +22,15 @@ describe("buildSpawnSpec", () => {
   });
 
   test("never leaks the proxy's own env (e.g. ZSAN_*, ANTHROPIC_API_KEY)", () => {
-    process.env.ANTHROPIC_API_KEY = "should-not-leak";
-    process.env.ZSAN_ZENDESK_API_TOKEN = "should-not-leak";
-    const spec = buildSpawnSpec({ ...base, platform: "linux" });
-    expect(JSON.stringify(spec.env)).not.toContain("should-not-leak");
-    delete process.env.ANTHROPIC_API_KEY; delete process.env.ZSAN_ZENDESK_API_TOKEN;
+    const prev = { a: process.env.ANTHROPIC_API_KEY, z: process.env.ZSAN_ZENDESK_API_TOKEN };
+    try {
+      process.env.ANTHROPIC_API_KEY = "should-not-leak";
+      process.env.ZSAN_ZENDESK_API_TOKEN = "should-not-leak";
+      const spec = buildSpawnSpec({ ...base, platform: "linux" });
+      expect(JSON.stringify(spec.env)).not.toContain("should-not-leak");
+    } finally {
+      if (prev.a === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = prev.a;
+      if (prev.z === undefined) delete process.env.ZSAN_ZENDESK_API_TOKEN; else process.env.ZSAN_ZENDESK_API_TOKEN = prev.z;
+    }
   });
 });
