@@ -1,0 +1,9 @@
+{
+  "name": "DK_PHONE",
+  "supported_entity": "DK_PHONE",
+  "patterns": [
+    { "name": "dk_intl", "regex": "(?<!\\d)\\+45[ ]?\\d{2}[ ]?\\d{2}[ ]?\\d{2}[ ]?\\d{2}(?!\\d)", "score": 0.9 },
+    { "name": "dk_local_grouped", "regex": "(?<!\\d)\\d{2} \\d{2} \\d{2} \\d{2}(?!\\d)", "score": 0.75 }
+  ],
+  "context": ["tlf", "telefon", "mobil", "ring"]
+}

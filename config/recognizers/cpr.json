@@ -1,0 +1,9 @@
+{
+  "name": "DK_CPR",
+  "supported_entity": "DK_CPR",
+  "patterns": [
+    { "name": "cpr_hyphen", "regex": "\\b\\d{6}-\\d{4}\\b", "score": 0.85 },
+    { "name": "cpr_plain", "regex": "\\b\\d{10}\\b", "score": 0.6 }
+  ],
+  "context": ["cpr", "cpr-nr", "cpr-nummer", "personnummer"]
+}
