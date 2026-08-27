@@ -40,6 +40,19 @@ describe("PresidioClient", () => {
     expect(spans.every((s) => s.source === "presidio")).toBe(true);
   });
 
+  test("drops results with missing or non-integer start/end", async () => {
+    const malformed = [
+      { entity_type: "PERSON", score: 0.9 },
+      { entity_type: "PERSON", start: "4", end: 18, score: 0.9 },
+      { entity_type: "PERSON", start: 4, end: 18, score: 0.9 },
+    ];
+    const client = new PresidioClient({ baseUrl: "http://p", recognizers, fetchImpl: fakeFetch(() => Response.json(malformed)) });
+    const spans = await client.analyze({ id: "c1", text: TEXT, lang: "da" }, { signal: new AbortController().signal });
+    expect(spans.map((s) => [s.type, TEXT.slice(s.start, s.end)])).toEqual([
+      ["PERSON", "Mette Sørensen"],
+    ]);
+  });
+
   test("non-2xx → SANITIZER_UNAVAILABLE", async () => {
     const client = new PresidioClient({ baseUrl: "http://p", recognizers, fetchImpl: fakeFetch(() => new Response("boom", { status: 500 })) });
     const err = await client.analyze({ id: "c1", text: TEXT }, { signal: new AbortController().signal }).catch((e) => e);

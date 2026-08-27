@@ -68,6 +68,7 @@ export class PresidioClient implements Pass1Client {
       if (!type) continue;
       const threshold = NER_TYPES.has(type) ? this.opts.nerThreshold : this.opts.patternThreshold;
       if (typeof r.score !== "number" || r.score < threshold) continue;
+      if (!Number.isInteger(r.start) || !Number.isInteger(r.end) || r.end <= r.start) continue;
       if (type === "CPR" && !isValidCpr(chunk.text.slice(r.start, r.end))) continue;
       spans.push({ start: r.start, end: r.end, type, score: r.score, source: "presidio" });
     }
