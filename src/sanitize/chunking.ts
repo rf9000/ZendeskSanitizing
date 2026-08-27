@@ -10,6 +10,9 @@ function lastBoundaryBefore(window: string, re: RegExp): number {
 }
 
 export function splitText(text: string, maxChars: number): string[] {
+  if (!Number.isInteger(maxChars) || maxChars < 1) {
+    throw new RangeError(`splitText: maxChars must be a positive integer, got ${maxChars}`);
+  }
   if (text.length <= maxChars) return [text];
   const pieces: string[] = [];
   let rest = text;

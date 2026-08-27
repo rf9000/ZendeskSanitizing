@@ -30,4 +30,10 @@ describe("splitText", () => {
   test("empty string → single empty piece", () => {
     expect(splitText("", 10)).toEqual([""]);
   });
+
+  test("rejects non-positive or non-integer maxChars", () => {
+    expect(() => splitText("abc", 0)).toThrow(RangeError);
+    expect(() => splitText("abc", -1)).toThrow(RangeError);
+    expect(() => splitText("abc", 2.5)).toThrow(RangeError);
+  });
 });
