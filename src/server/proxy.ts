@@ -20,14 +20,20 @@ export function ticketIdFrom(args: Record<string, unknown>): string {
 }
 
 const WITHHELD = "response withheld by the sanitizing proxy";
+const errName = (e: unknown): string => (e instanceof Error ? e.name : typeof e);
 
 export function createProxyServer(deps: ProxyDeps): Server {
   const now = deps.now ?? Date.now;
   const server = new Server({ name: "zendesk-sanitizing-proxy", version: "0.0.1" }, { capabilities: { tools: {} } });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    const tools = await deps.upstream.listTools();
-    return { tools: filterToolList(tools) as never };
+    try {
+      const tools = await deps.upstream.listTools();
+      return { tools: filterToolList(tools) as never };
+    } catch (e) {
+      deps.logger.error(`tools/list: upstream failed (${errName(e)})`);
+      throw new McpError(ErrorCode.InternalError, "UPSTREAM_UNAVAILABLE: the Zendesk MCP server did not respond");
+    }
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
@@ -43,23 +49,26 @@ export function createProxyServer(deps: ProxyDeps): Server {
     try {
       raw = await deps.upstream.callTool(name, args);
     } catch (e) {
-      deps.logger.error(`${name} ${ticketIdFrom(args)}: upstream failed (${(e as Error).name})`);
+      deps.logger.error(`${name} ${ticketIdFrom(args)}: upstream failed (${errName(e)})`);
       throw new McpError(ErrorCode.InternalError, "UPSTREAM_UNAVAILABLE: the Zendesk MCP server did not respond");
     }
 
-    let sanitized: SanitizedResult;
+    let toReturn: ToolResult;
     try {
-      sanitized = await deps.sanitizer.sanitize(raw);
+      const sanitized: SanitizedResult = await deps.sanitizer.sanitize(raw);
+      if (sanitized.result === raw) {
+        throw new SanitizerError("SANITIZER_INTERNAL", "sanitizer returned the raw result");
+      }
+      deps.logger.info(
+        `${name} ${ticketIdFrom(args)}: ${formatCounts(sanitized.counts)} (pass1 ${sanitized.perPass.pass1}, pass2 ${sanitized.perPass.pass2}) ${now() - started}ms`,
+      );
+      toReturn = sanitized.result;
     } catch (e) {
       const code = e instanceof SanitizerError ? e.code : "SANITIZER_INTERNAL";
-      deps.logger.error(`${name} ${ticketIdFrom(args)}: ${code} (${(e as Error).name})`);
+      deps.logger.error(`${name} ${ticketIdFrom(args)}: ${code} (${errName(e)})`);
       throw new McpError(ErrorCode.InternalError, `${code}: ${WITHHELD}`);
     }
-
-    deps.logger.info(
-      `${name} ${ticketIdFrom(args)}: ${formatCounts(sanitized.counts)} (pass1 ${sanitized.perPass.pass1}, pass2 ${sanitized.perPass.pass2}) ${now() - started}ms`,
-    );
-    return sanitized.result as never;
+    return toReturn as never;
   });
 
   return server;

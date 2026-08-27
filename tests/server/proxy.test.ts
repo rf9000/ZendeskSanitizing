@@ -56,10 +56,21 @@ describe("proxy", () => {
 
   test("blocked tool is rejected before reaching upstream", async () => {
     const up = fakeUpstream();
-    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const lines: string[] = [];
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "warn", sink: (l) => lines.push(l) }) });
     const err = await client.callTool({ name: "delete_ticket", arguments: { id: 1 } }).catch((e) => e);
     expect(String(err.message)).toContain("TOOL_NOT_ALLOWED");
     expect(up.calls).toEqual([]);
+    expect(lines.join("\n")).toContain("[warn] delete_ticket blocked");
+  });
+
+  test("tools/list upstream failure maps to UPSTREAM_UNAVAILABLE without payload", async () => {
+    const up = fakeUpstream({ async listTools() { throw new Error("EPIPE secret-host"); } });
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.listTools().catch((e) => e);
+    expect(String(err.message)).toContain("UPSTREAM_UNAVAILABLE");
+    expect(JSON.stringify(err)).not.toContain("EPIPE");
+    expect(JSON.stringify(err)).not.toContain("secret-host");
   });
 
   test("sanitizer failure → error without payload", async () => {
@@ -85,6 +96,23 @@ describe("proxy", () => {
     const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
     const err = await client.callTool({ name: "get_ticket", arguments: { id: 1 } }).catch((e) => e);
     expect(String(err.message)).toContain("UPSTREAM_UNAVAILABLE");
+    expect(JSON.stringify(err)).not.toContain("EPIPE");
+  });
+
+  test("sanitizer resolving to undefined → SANITIZER_INTERNAL, no raw error leak", async () => {
+    const broken = { async sanitize(): Promise<any> { return undefined as any; } };
+    const client = await connect({ upstream: fakeUpstream(), sanitizer: broken, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "get_ticket", arguments: { id: 1 } }).catch((e) => e);
+    expect(String(err.message)).toContain("SANITIZER_INTERNAL");
+    expect(String(err.message)).not.toContain("undefined");
+    expect(String(err.message)).not.toContain("Cannot read");
+  });
+
+  test("sanitizer returning the raw result unchanged → SANITIZER_INTERNAL", async () => {
+    const identity = { async sanitize(r: ToolResult) { return { result: r, counts: { PERSON: 0 } as any, perPass: { pass1: 0, pass2: 0 } }; } };
+    const client = await connect({ upstream: fakeUpstream(), sanitizer: identity, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "get_ticket", arguments: { id: 1 } }).catch((e) => e);
+    expect(String(err.message)).toContain("SANITIZER_INTERNAL");
   });
 
   test("ticketIdFrom", () => {

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "../config.ts";
 import { createLogger } from "../logging.ts";
@@ -20,8 +21,9 @@ if (config.pass2 === "off") {
   process.exit(2);
 }
 
-const allowlist = await Allowlist.fromFile(config.allowlistPath);
-const recognizers = await loadRecognizers("config/recognizers");
+const repoRoot = resolve(import.meta.dir, "..", "..");
+const allowlist = await Allowlist.fromFile(resolve(repoRoot, config.allowlistPath));
+const recognizers = await loadRecognizers(resolve(repoRoot, config.recognizersPath));
 const presidio = new PresidioClient({ baseUrl: config.presidioUrl, recognizers });
 
 const sanitizer = createResultSanitizer({
@@ -40,6 +42,17 @@ const server = createProxyServer({ upstream, sanitizer, logger });
 await server.connect(new StdioServerTransport());
 logger.info("zendesk-sanitizing-proxy ready (stdio, pass2=off)");
 
-const shutdown = async () => { await upstream.close().catch(() => {}); process.exit(0); };
+let closing = false;
+const shutdown = async () => {
+  if (closing) return;
+  closing = true;
+  try {
+    await Promise.race([upstream.close(), new Promise<void>((done) => setTimeout(done, 3000))]);
+  } catch {
+    // ignore — we're shutting down regardless
+  } finally {
+    process.exit(0);
+  }
+};
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

@@ -18,6 +18,8 @@ describe("loadConfig", () => {
     expect(c.chunkMaxChars).toBe(6000);
     expect(c.concurrency).toBe(4);
     expect(c.logLevel).toBe("info");
+    expect(c.allowlistPath).toBe("config/allowlist.txt");
+    expect(c.recognizersPath).toBe("config/recognizers");
   });
 
   test("lists every missing required var", () => {

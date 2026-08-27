@@ -15,6 +15,7 @@ const envSchema = z.object({
   ZSAN_CONCURRENCY: z.coerce.number().int().min(1).max(32).default(4),
   ZSAN_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   ZSAN_ALLOWLIST_PATH: z.string().default("config/allowlist.txt"),
+  ZSAN_RECOGNIZERS_PATH: z.string().default("config/recognizers"),
 });
 
 export interface AppConfig {
@@ -29,6 +30,7 @@ export interface AppConfig {
   concurrency: number;
   logLevel: "debug" | "info" | "warn" | "error";
   allowlistPath: string;
+  recognizersPath: string;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -50,5 +52,6 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     concurrency: p.ZSAN_CONCURRENCY,
     logLevel: p.ZSAN_LOG_LEVEL,
     allowlistPath: p.ZSAN_ALLOWLIST_PATH,
+    recognizersPath: p.ZSAN_RECOGNIZERS_PATH,
   };
 }
