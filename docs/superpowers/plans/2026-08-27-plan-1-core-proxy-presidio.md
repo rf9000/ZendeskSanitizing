@@ -695,7 +695,8 @@ describe("splitText", () => {
 
   test("falls back to sentence, then space, then hard cut", () => {
     expect(splitText("One two. Three four.", 12)).toEqual(["One two. ", "Three four."]);
-    expect(splitText("aaaa bbbb cccc", 9)).toEqual(["aaaa ", "bbbb ", "cccc"]);
+    expect(splitText("aaaa bbbb cccc", 9)).toEqual(["aaaa ", "bbbb cccc"]); // "bbbb cccc" is exactly 9 → fits
+    expect(splitText("aaaa bbbb cccc", 8)).toEqual(["aaaa ", "bbbb ", "cccc"]);
     expect(splitText("abcdefghij", 4)).toEqual(["abcd", "efgh", "ij"]);
   });
 
@@ -1158,11 +1159,11 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```json
 [
   { "entity_type": "PERSON", "start": 4, "end": 18, "score": 0.85 },
-  { "entity_type": "EMAIL_ADDRESS", "start": 26, "end": 43, "score": 1.0 },
-  { "entity_type": "DK_CPR", "start": 50, "end": 61, "score": 0.85 },
-  { "entity_type": "DK_CPR", "start": 66, "end": 77, "score": 0.85 },
-  { "entity_type": "LOCATION", "start": 81, "end": 87, "score": 0.9 },
-  { "entity_type": "ORGANIZATION", "start": 92, "end": 99, "score": 0.3 }
+  { "entity_type": "EMAIL_ADDRESS", "start": 25, "end": 41, "score": 1.0 },
+  { "entity_type": "DK_CPR", "start": 47, "end": 58, "score": 0.85 },
+  { "entity_type": "DK_CPR", "start": 62, "end": 73, "score": 0.85 },
+  { "entity_type": "LOCATION", "start": 76, "end": 82, "score": 0.9 },
+  { "entity_type": "ORGANIZATION", "start": 87, "end": 94, "score": 0.3 }
 ]
 ```
 
@@ -2189,6 +2190,13 @@ describe("createResultSanitizer", () => {
     expect((result as any).validationDetails).toBeUndefined();
   });
 
+  test("a free-text prefix before the JSON is sanitized too", async () => {
+    const rs = createResultSanitizer({ newSession });
+    const { result } = await rs.sanitize({ content: [{ type: "text", text: 'Validation Error: requester Mette Sørensen not found\n\nDetails:\n{"requester":"Mette Sørensen"}' }], isError: true });
+    const text = (result.content[0] as any).text as string;
+    expect(text).toBe('Validation Error: requester [PERSON_1] not found\n\nDetails:\n{\n  "requester": "[PERSON_1]"\n}');
+  });
+
   test("multiple content items share one placeholder table", async () => {
     const rs = createResultSanitizer({ newSession });
     const { result } = await rs.sanitize({ content: [{ type: "text", text: "Mette Sørensen" }, { type: "text", text: "Again Mette Sørensen" }] });
@@ -2249,6 +2257,7 @@ export function encodeText(prefix: string, json: unknown): string {
 }
 
 interface Pending { index: number; prefix: string; skeleton?: unknown; whole?: boolean }
+const PREFIX_KEY = "__prefix";
 
 export function createResultSanitizer(deps: ResultSanitizerDeps) {
   return {
@@ -2267,6 +2276,8 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
         }
         const { skeleton, fields } = applyFieldPolicy(json);
         for (const f of fields) chunks.push({ id: `${index}:${f.path}`, text: f.text });
+        // The prefix is upstream free text too (e.g. "Validation Error: requester <name> not found\n\nDetails:\n") — sanitize it.
+        if (prefix) chunks.push({ id: `${index}:${PREFIX_KEY}`, text: prefix });
         pending.push({ index, prefix, skeleton });
       });
 
@@ -2276,7 +2287,9 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
         if (p.whole) return { type: "text", text: out.texts.get(`${p.index}:`)! };
         const texts = new Map<string, string>();
         for (const [id, t] of out.texts) if (id.startsWith(`${p.index}:`)) texts.set(id.slice(`${p.index}:`.length), t);
-        return { type: "text", text: encodeText(p.prefix, fillFields(p.skeleton, texts)) };
+        const prefix = p.prefix ? texts.get(PREFIX_KEY)! : "";
+        texts.delete(PREFIX_KEY);
+        return { type: "text", text: encodeText(prefix, fillFields(p.skeleton, texts)) };
       });
 
       const sanitized: ToolResult = { content };
@@ -2290,7 +2303,7 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
 - [ ] **Step 4: Run — expect pass**
 
 Run: `bun test tests/policy/resultSanitizer.test.ts && bun run typecheck`
-Expected: 9 pass, typecheck clean.
+Expected: 10 pass, typecheck clean.
 
 - [ ] **Step 5: Commit**
 
