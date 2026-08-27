@@ -1,0 +1,8 @@
+[
+  { "entity_type": "PERSON", "start": 4, "end": 18, "score": 0.85 },
+  { "entity_type": "EMAIL_ADDRESS", "start": 25, "end": 41, "score": 1.0 },
+  { "entity_type": "DK_CPR", "start": 47, "end": 58, "score": 0.85 },
+  { "entity_type": "DK_CPR", "start": 62, "end": 73, "score": 0.85 },
+  { "entity_type": "LOCATION", "start": 76, "end": 82, "score": 0.9 },
+  { "entity_type": "ORGANIZATION", "start": 87, "end": 94, "score": 0.3 }
+]
