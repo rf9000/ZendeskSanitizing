@@ -37,8 +37,8 @@ export type SanitizerErrorCode = "SANITIZER_UNAVAILABLE" | "SANITIZER_INVALID_OU
 
 export class SanitizerError extends Error {
   readonly code: SanitizerErrorCode;
-  constructor(code: SanitizerErrorCode, message: string) {
-    super(message);
+  constructor(code: SanitizerErrorCode, message: string, options?: { cause?: unknown }) {
+    super(message, options);
     this.name = "SanitizerError";
     this.code = code;
   }

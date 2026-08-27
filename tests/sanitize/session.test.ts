@@ -80,4 +80,69 @@ describe("SanitizeSession", () => {
     expect(out.texts.size).toBe(0);
     expect(out.perPass).toEqual({ pass1: 0, pass2: 0 });
   });
+
+  test("placeholder numbering follows input order, not completion order, under concurrency", async () => {
+    const pass1 = fakePass1(async (chunk) => {
+      const name = chunk.text.includes("Anna") ? "Anna" : "Bo";
+      if (name === "Anna") await new Promise((resolve) => setTimeout(resolve, 30));
+      return spansByLiteral(chunk.text, [[name, "PERSON"]], "presidio");
+    });
+    const deps = base({ pass1, concurrency: 2 });
+    const out = await new SanitizeSession(deps).sanitize([
+      { id: "a", text: "Hilsen Anna" },
+      { id: "b", text: "Hilsen Bo" },
+    ]);
+    expect(out.texts.get("a")).toBe("Hilsen [PERSON_1]");
+    expect(out.texts.get("b")).toBe("Hilsen [PERSON_2]");
+  });
+
+  test("invalid concurrency rejects with SANITIZER_INTERNAL", async () => {
+    const deps = base({ concurrency: Number.NaN });
+    const err = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "hello" }]).catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect(err.code).toBe("SANITIZER_INTERNAL");
+  });
+
+  test("duplicate chunk ids reject with SANITIZER_INTERNAL", async () => {
+    const err = await new SanitizeSession(base())
+      .sanitize([
+        { id: "dup", text: "a" },
+        { id: "dup", text: "b" },
+      ])
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect(err.code).toBe("SANITIZER_INTERNAL");
+  });
+
+  test("a session can only be used once", async () => {
+    const session = new SanitizeSession(base());
+    await session.sanitize([{ id: "c1", text: "hello" }]);
+    const err = await session.sanitize([{ id: "c2", text: "world" }]).catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect(err.code).toBe("SANITIZER_INTERNAL");
+  });
+
+  test("failure aborts in-flight sibling calls", async () => {
+    let bSignal: AbortSignal | undefined;
+    const pass1 = fakePass1((chunk, opts) => {
+      if (chunk.id.startsWith("a")) throw new Error("boom");
+      bSignal = opts.signal;
+      return new Promise<ReturnType<typeof spansByLiteral>>((resolve) => {
+        const timer = setTimeout(() => resolve([]), 50);
+        opts.signal.addEventListener("abort", () => {
+          clearTimeout(timer);
+          resolve([]);
+        });
+      });
+    });
+    const deps = base({ pass1, concurrency: 2 });
+    const err = await new SanitizeSession(deps)
+      .sanitize([
+        { id: "a", text: "x".repeat(30) },
+        { id: "b", text: "y".repeat(30) },
+      ])
+      .catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect(bSignal?.aborted).toBe(true);
+  });
 });

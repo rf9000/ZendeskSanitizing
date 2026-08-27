@@ -16,14 +16,32 @@ export function spansByLiteral(text: string, literals: Array<[string, Span["type
   return spans;
 }
 
-export function fakePass1(spansFor: (chunk: Chunk) => Span[] | Promise<Span[]>): Pass1Client & { calls: Chunk[] } {
+export function fakePass1(
+  spansFor: (chunk: Chunk, opts: { signal: AbortSignal }) => Span[] | Promise<Span[]>,
+): Pass1Client & { calls: Chunk[] } {
   const calls: Chunk[] = [];
-  return { calls, async analyze(chunk) { calls.push(chunk); return spansFor(chunk); } };
+  return {
+    calls,
+    async analyze(chunk, opts) {
+      calls.push(chunk);
+      return spansFor(chunk, opts);
+    },
+  };
 }
 
-export function fakeDetector(name: string, spansFor: (chunk: Chunk) => Span[] | Promise<Span[]>): SpanDetector & { calls: Chunk[] } {
+export function fakeDetector(
+  name: string,
+  spansFor: (chunk: Chunk, opts: { signal: AbortSignal }) => Span[] | Promise<Span[]>,
+): SpanDetector & { calls: Chunk[] } {
   const calls: Chunk[] = [];
-  return { name, calls, async detect(chunk) { calls.push(chunk); return spansFor(chunk); } };
+  return {
+    name,
+    calls,
+    async detect(chunk, opts) {
+      calls.push(chunk);
+      return spansFor(chunk, opts);
+    },
+  };
 }
 
 export const emptyAllowlist = (): Allowlist => Allowlist.fromText("");
