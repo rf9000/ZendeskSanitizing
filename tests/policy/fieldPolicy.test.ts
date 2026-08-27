@@ -67,3 +67,38 @@ describe("applyFieldPolicy + fillFields", () => {
     expect(fillFields(s.skeleton, new Map([["", "X"]]))).toBe("X");
   });
 });
+
+describe("applyFieldPolicy fix round 1", () => {
+  test("search-result user objects are reduced to { id, result_type }", () => {
+    const { skeleton, fields } = applyFieldPolicy({
+      results: [
+        { result_type: "user", id: 7, name: "Lars Nielsen", email: "lars@x.example" },
+        { result_type: "ticket", id: 1, subject: "Hej" },
+      ],
+      count: 2,
+    }) as any;
+    expect(skeleton.results[0]).toEqual({ id: 7, result_type: "user" });
+    expect(skeleton.results[1]).toHaveProperty("subject");
+    expect(fields.some((f: any) => f.path.startsWith("results.0"))).toBe(false);
+  });
+
+  test("idOnly applied to an array maps each element to { id } or null", () => {
+    const { skeleton, fields } = applyFieldPolicy({
+      ticket: { collaborators: [{ id: 1, name: "A", email: "a@x" }, { id: 2, name: "B" }] },
+    }) as any;
+    expect(skeleton.ticket.collaborators).toEqual([{ id: 1 }, { id: 2 }]);
+    expect(JSON.stringify(skeleton)).not.toContain("A");
+    expect(JSON.stringify(skeleton)).not.toContain("a@x");
+    expect(JSON.stringify(skeleton)).not.toContain("B");
+    expect(fields).toEqual([]);
+  });
+
+  test("marker robustness: numeric __zsan upstream is dropped, string markers still fill", () => {
+    const { skeleton, fields } = applyFieldPolicy({ a: { __zsan: 5 }, b: "x" });
+    expect((skeleton as any).a).toEqual({});
+    const texts = new Map(fields.map((f) => [f.path, `S(${f.path})`]));
+    const filled = fillFields(skeleton, texts) as any;
+    expect(filled.b).toBe("S(b)");
+    expect(JSON.stringify(filled)).not.toContain("__zsan");
+  });
+});

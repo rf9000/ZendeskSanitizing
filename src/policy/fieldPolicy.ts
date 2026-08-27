@@ -52,9 +52,22 @@ export function applyFieldPolicy(payload: unknown): { skeleton: unknown; fields:
   // leaf values; for objects/arrays it means "no rule fired here", so we still recurse into
   // children (each re-evaluated against the RULES table at its own path).
   const process = (value: unknown, path: string[]): unknown => {
+    // Value-conditional rule, evaluated before the path-suffix table: search-result "hits" carry
+    // their own type tag rather than a distinctive key name, so the suffix engine can't express
+    // this. A user hit is reduced to { id, result_type } — the tag is kept (not PII, and
+    // downstream consumers need to know the hit was a user) but every other field is dropped.
+    if (typeof value === "object" && value !== null && !Array.isArray(value) && (value as { result_type?: unknown }).result_type === "user") {
+      const id = (value as { id?: unknown }).id;
+      return { id: id ?? null, result_type: "user" };
+    }
+
     const rule = ruleFor(path, value);
     if (rule === "drop") return DROP;
     if (rule === "idOnly") {
+      // Zendesk sends arrays for some idOnly fields (collaborators, followers, email_ccs, users).
+      if (Array.isArray(value)) {
+        return value.map((v) => (v && typeof v === "object" && "id" in (v as object) ? { id: (v as { id: unknown }).id } : null));
+      }
       const id = (value as { id?: unknown }).id;
       return id === undefined ? null : { id };
     }
@@ -75,6 +88,9 @@ export function applyFieldPolicy(payload: unknown): { skeleton: unknown; fields:
     if (typeof value === "object" && value !== null) {
       const out: Record<string, unknown> = {};
       for (const [key, v] of Object.entries(value)) {
+        // A key literally named "__zsan" arriving from upstream (not one we generated) must never
+        // survive into the skeleton, where it could be mistaken for our own sanitize marker.
+        if (key === MARKER) continue;
         const r = process(v, [...path, key]);
         if (r !== DROP) out[key] = r;
       }
@@ -92,7 +108,7 @@ export function fillFields(skeleton: unknown, texts: Map<string, string>): unkno
     if (Array.isArray(value)) return value.map(fill);
     if (typeof value !== "object" || value === null) return value;
     const keys = Object.keys(value);
-    if (keys.length === 1 && keys[0] === MARKER) {
+    if (keys.length === 1 && keys[0] === MARKER && typeof (value as Record<string, unknown>)[MARKER] === "string") {
       const id = (value as Record<string, string>)[MARKER]!;
       const t = texts.get(id);
       if (t === undefined) throw new Error(`fieldPolicy: unfilled sanitize marker at "${id}"`);
