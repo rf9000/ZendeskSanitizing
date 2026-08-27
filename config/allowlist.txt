@@ -1,0 +1,20 @@
+# Terms that must never be redacted. One per line. Case-insensitive.
+# A span is also allowed when its words are a subset of a multi-word term here.
+# Owned by the GDPR owner via CODEOWNERS.
+Continia
+Continia Software
+Continia Document Capture
+Document Capture
+Continia Expense Management
+Expense Management
+Continia Payment Management
+Payment Management
+Business Central
+Dynamics 365
+Dynamics NAV
+Microsoft
+Azure
+Zendesk
+OneDrive
+SharePoint
+Outlook
