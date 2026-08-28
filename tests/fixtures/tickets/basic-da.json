@@ -42,6 +42,10 @@
     "present": ["Vedhæftet faktura", "4711", "open", "Intern note"]
   },
   "expectedPass2": {
-    "absent": ["Mette", "Sørensen"]
+    "absent": ["Mette", "Sørensen"],
+    "reasons": {
+      "Mette": "leaks via the 'mette_soerensen' tag (lower-case, ASCII-transliterated given name — Plan-1 NER doesn't reliably catch lower-case names) and via the 'faktura_MetteSørensen.pdf' attachment filename (name has no surrounding spaces)",
+      "Sørensen": "leaks via the same 'faktura_MetteSørensen.pdf' attachment filename (name embedded in a filename with no spaces — Plan-1 NER needs word-boundary spacing to fire)"
+    }
   }
 }

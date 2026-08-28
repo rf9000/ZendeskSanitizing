@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Status
 
-ZendeskSanitizing is a new repository — as of the initial commit it contains only a README and no code, build config, or tests. The sibling projects in `C:\GeneralDev\DevOpsPullers\` (e.g. `DevOpsPullTemplate`, `DevOpsCoder`) are Bun + TypeScript with `bun:test`; if this project adopts the same stack, follow their conventions (Zod for env config, dependency injection via interfaces, `tests/` mirroring `src/`). Update the **Commands** and **Architecture** sections below as soon as the first code lands.
+ZendeskSanitizing is a working Bun + TypeScript project (Plan 1 — laptop mode — is implemented): an MCP sanitizing proxy in front of the Zendesk MCP server, following the sibling `DevOpsPullers` projects' conventions (Zod for env config, dependency injection via interfaces, `tests/` mirroring `src/`). Design spec: `docs/superpowers/specs/2026-08-27-zendesk-sanitizing-proxy-design.md`; implementation plan: `docs/superpowers/plans/2026-08-27-plan-1-core-proxy-presidio.md`. The **Commands** and **Architecture** sections below are current — keep them that way as the codebase changes.
 
 ## Development Approach: Test-Driven Development
 

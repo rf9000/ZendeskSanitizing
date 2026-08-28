@@ -3,6 +3,8 @@
 # Owned by the GDPR owner via CODEOWNERS.
 Continia
 Continia Software
+Continia A/S
+Continia Software A/S
 Continia Document Capture
 Document Capture
 Continia Expense Management
@@ -13,6 +15,8 @@ Business Central
 Dynamics 365
 Dynamics NAV
 Microsoft
+Microsoft Corp
+Microsoft Corporation
 Azure
 Zendesk
 OneDrive

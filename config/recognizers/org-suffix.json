@@ -4,7 +4,7 @@
   "patterns": [
     {
       "name": "company_legal_suffix",
-      "regex": "(?<![\\w&.,'-])[A-Za-z\\u00C0-\\u024F][\\w\\u00C0-\\u024F&.,'-]*(?:\\s+[A-Za-z\\u00C0-\\u024F][\\w\\u00C0-\\u024F&.,'-]*){0,1}\\s+(?:ApS|A\\/S|GmbH|AG|Ltd\\.?|LLC|Inc\\.?|Corp\\.?|Gruppe|Group|Holding|Kommanditselskab|K\\/S)(?![\\w])",
+      "regex": "(?<![\\w&'-])(?:(?!(?:the|a|an|and|or|but|of|in|on|at|for|with|without|to|from|by|is|are|was|were|be|been|this|that|these|those|using|use|please|der|die|das|und|oder|von|bei|zu|mit|ohne|ist|sind|war|waren|og|p\\u00E5|med|til|fra|er|var|den|det|de)\\b)[A-Za-z0-9\\u00C0-\\u024F&'-]+)(?: (?:(?!(?:the|a|an|and|or|but|of|in|on|at|for|with|without|to|from|by|is|are|was|were|be|been|this|that|these|those|using|use|please|der|die|das|und|oder|von|bei|zu|mit|ohne|ist|sind|war|waren|og|p\\u00E5|med|til|fra|er|var|den|det|de)\\b)[A-Za-z0-9\\u00C0-\\u024F&'-]+)){0,2} (?:ApS|A\\/S|I\\/S|IVS|GmbH|mbH|Ltd\\.?|LLC|Inc\\.?|Corp\\.?|B\\.V\\.|plc)(?![\\w])",
       "score": 0.6
     }
   ],

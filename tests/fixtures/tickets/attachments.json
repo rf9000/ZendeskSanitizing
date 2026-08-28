@@ -8,6 +8,9 @@
     "present": ["application/pdf", "image/png", "faktura", "network-diagram.png", "88301", "88302"]
   },
   "expectedPass2": {
-    "absent": ["MetteSørensen"]
+    "absent": ["MetteSørensen"],
+    "reasons": {
+      "MetteSørensen": "name is embedded in the attachment filename with no surrounding spaces ('faktura_MetteSørensen.pdf') — Plan-1 NER needs word-boundary spacing to recognize a person name"
+    }
   }
 }

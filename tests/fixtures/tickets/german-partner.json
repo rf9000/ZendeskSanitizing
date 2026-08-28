@@ -32,6 +32,9 @@
     "present": ["Business Central", "Document Capture", "6302", "open"]
   },
   "expectedPass2": {
-    "absent": ["Musterstraße 12, 10115 Berlin"]
+    "absent": ["Musterstraße 12, 10115 Berlin"],
+    "reasons": {
+      "Musterstraße 12, 10115 Berlin": "Presidio's LOCATION entity type (spaCy de_core_news_lg does emit it for this street address) is intentionally not mapped to ADDRESS in PRESIDIO_ENTITY_MAP — there is no DE address recognizer in Plan 1"
+    }
   }
 }
