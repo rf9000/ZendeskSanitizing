@@ -17,7 +17,7 @@ recognizers:
       - language: en
         context: [phone, number, telephone, cell, cellphone, mobile]
       - language: de
-        context: [telefon, nummer, handynummer, rufnummer, anruf, mobil]
+        context: [telefon, nummer, handynummer, rufnummer, anruf, mobil, handy]
   - name: IbanRecognizer
     type: predefined
     supported_languages: [da, en, de]

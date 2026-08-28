@@ -8,6 +8,7 @@ services:
         SPACY_MODEL_VERSION: ${SPACY_MODEL_VERSION}
     image: zsan/presidio-analyzer:${SPACY_MODEL_VERSION}-${PRESIDIO_ANALYZER_VERSION}
     profiles: [laptop, vm]
+    restart: unless-stopped
     ports:
       - "127.0.0.1:5002:3000"
     healthcheck:

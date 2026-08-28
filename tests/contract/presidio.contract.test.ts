@@ -16,15 +16,16 @@ d("presidio analyzer contract", () => {
   });
 
   test.each([
-    ["da", "Hej, jeg hedder Mette Sørensen og arbejder hos Contoso ApS i Aarhus. Skriv til mette@contoso.dk eller ring på telefon +45 12 34 56 78. CPR 010190-1234. IBAN DK5000400440116243."],
-    ["en", "Hello, my name is Jonathan Whitfield from Fabrikam Ltd. Email jonathan@fabrikam.co.uk or reach my mobile phone at +44 20 7946 0958. Card 4111 1111 1111 1111."],
-    ["de", "Guten Tag, mein Name ist Katharina Vogelsang von der Muster GmbH. E-Mail katharina@muster.de, Telefon +49 30 901820. IBAN DE89370400440532013000."],
+    ["da", "Hej, jeg hedder Mette Sørensen og arbejder hos Contoso ApS i Aarhus. Skriv til mette@contoso.dk eller ring +45 12 34 56 78. CPR 010190-1234. IBAN DK5000400440116243."],
+    ["en", "Hello, my name is Jonathan Whitfield from Fabrikam Ltd. Email jonathan@fabrikam.co.uk or +44 20 7946 0958 anytime. Card 4111 1111 1111 1111."],
+    ["de", "Guten Tag, mein Name ist Katharina Vogelsang von der Muster GmbH. E-Mail katharina@muster.de, +49 30 901820 ist erreichbar. IBAN DE89370400440532013000."],
   ] as const)("recognizes entities in %s", async (lang, text) => {
     const spans = await client.analyze({ id: "t", text, lang }, { signal: signal() });
     const types = new Set(spans.map((s) => s.type));
     expect(types.has("PERSON")).toBe(true);
     expect(types.has("EMAIL")).toBe(true);
     expect(types.has("PHONE")).toBe(true);
+    expect(types.has("ORG")).toBe(true);
     if (lang === "da") { expect(types.has("CPR")).toBe(true); expect(types.has("IBAN")).toBe(true); }
     if (lang === "en") expect(types.has("CARD")).toBe(true);
     if (lang === "de") expect(types.has("IBAN")).toBe(true);

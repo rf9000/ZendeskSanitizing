@@ -28,7 +28,7 @@ describe("loadRecognizers", () => {
   test("loads cpr and dk-phone definitions", async () => {
     const recs = await loadRecognizers("config/recognizers");
     const names = recs.map((r) => r.name).sort();
-    expect(names).toEqual(["DK_CPR", "DK_PHONE"]);
+    expect(names).toEqual(["DK_CPR", "DK_PHONE", "INTL_PHONE"]);
     const cpr = recs.find((r) => r.name === "DK_CPR")!;
     expect(cpr.supported_entity).toBe("DK_CPR");
     expect(new RegExp(cpr.patterns[0]!.regex).test("010190-1234")).toBe(true);

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { PresidioClient } from "@/sanitize/presidio.ts";
+import { PresidioClient, PRESIDIO_ENTITY_MAP } from "@/sanitize/presidio.ts";
 import { SanitizerError } from "@/sanitize/types.ts";
 import type { AdHocRecognizer } from "@/sanitize/cpr.ts";
 import recorded from "../fixtures/presidio/analyze-da.json";
@@ -14,6 +14,10 @@ function fakeFetch(handler: (url: string, init: RequestInit) => Response | Promi
 }
 
 describe("PresidioClient", () => {
+  test("maps INTL_PHONE to PHONE", () => {
+    expect(PRESIDIO_ENTITY_MAP.INTL_PHONE).toBe("PHONE");
+  });
+
   test("posts text, language and ad-hoc recognizers", async () => {
     let seen: { url: string; body: any } | undefined;
     const client = new PresidioClient({

@@ -7,6 +7,7 @@ export const PRESIDIO_ENTITY_MAP: Record<string, EntityType> = {
   EMAIL_ADDRESS: "EMAIL",
   PHONE_NUMBER: "PHONE",
   DK_PHONE: "PHONE",
+  INTL_PHONE: "PHONE",
   IBAN_CODE: "IBAN",
   CREDIT_CARD: "CARD",
   DK_CPR: "CPR",
