@@ -27,7 +27,7 @@
     }
   ],
   "expected": {
-    "absent": ["Fabrikam Ltd", "Contoso ApS"],
+    "absent": ["Fabrikam Ltd", "Contoso ApS", "Sam Reporter", "reporter@acme-test.com"],
     "present": ["Business Central user group", "Continia A/S", "working group", "holding company", "Please ag ree"]
   }
 }

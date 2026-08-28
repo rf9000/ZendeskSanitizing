@@ -1,0 +1,34 @@
+{
+  "ticket": {
+    "id": 6301,
+    "url": "https://acme.zendesk.com/api/v2/tickets/6301.json",
+    "subject": "Opfølgning på sag",
+    "raw_subject": "",
+    "description": "😀 Tak for hjælpen! Hilsen Mette Sørensen 🙏 — skriv til mette@contoso-test.dk. Nummeret er 0101901234 ifølge kunden. Koden 0140991234 er ugyldig.",
+    "status": "open",
+    "priority": "normal",
+    "requester_id": 940001,
+    "submitter_id": 940001,
+    "assignee_id": 100006,
+    "organization_id": 500040,
+    "tags": ["emoji_test"],
+    "custom_fields": [{ "id": 360004, "value": "" }],
+    "via": { "channel": "email", "source": { "from": { "address": "mette@contoso-test.dk", "name": "Mette Sørensen" }, "to": { "address": "support@acme.example" }, "rel": null } },
+    "created_at": "2026-04-01T09:00:00Z",
+    "requester": { "id": 940001, "name": "Mette Sørensen", "email": "mette@contoso-test.dk" }
+  },
+  "comments": [
+    {
+      "id": 1, "author_id": 940001, "public": true,
+      "body": "😀 Tak for hjælpen! Hilsen Mette Sørensen 🙏 — skriv til mette@contoso-test.dk. Nummeret er 0101901234 ifølge kunden. Koden 0140991234 er ugyldig.",
+      "html_body": "<p>😀 Tak for hjælpen! Hilsen Mette Sørensen 🙏 — skriv til mette@contoso-test.dk.</p>",
+      "plain_body": "😀 Tak for hjælpen! Hilsen Mette Sørensen 🙏 — skriv til mette@contoso-test.dk. Nummeret er 0101901234 ifølge kunden. Koden 0140991234 er ugyldig.",
+      "attachments": [],
+      "created_at": "2026-04-01T09:00:00Z"
+    }
+  ],
+  "expected": {
+    "absent": ["Mette Sørensen", "Sørensen", "mette@contoso-test.dk", "0101901234"],
+    "present": ["Tak for hjælpen", "skriv til", "0140991234"]
+  }
+}

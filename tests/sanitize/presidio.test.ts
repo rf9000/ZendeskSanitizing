@@ -82,4 +82,20 @@ describe("PresidioClient", () => {
     await client.analyze({ id: "c1", text: TEXT }, { signal: new AbortController().signal });
     expect(lang).toBe("en");
   });
+
+  // Presidio reports offsets as Unicode code points; JS strings index by UTF-16 code unit.
+  // TEXT2 contains two emoji (each 1 code point / 2 UTF-16 units) before the PII, so a client
+  // that used the raw offsets as UTF-16 indices would slice into the wrong place (PII leak).
+  const TEXT2 = "😀😀 Hilsen Mette Sørensen, mette.sorensen@fabrikam.dk";
+
+  test("translates Presidio's code-point offsets to UTF-16 before slicing (emoji prefix)", async () => {
+    // Verified with `[...TEXT2].slice(10,24).join("") === "Mette Sørensen"` etc. — code-point offsets, not UTF-16.
+    const codePointResults = [
+      { entity_type: "PERSON", start: 10, end: 24, score: 0.85 },
+      { entity_type: "EMAIL_ADDRESS", start: 26, end: 52, score: 1 },
+    ];
+    const client = new PresidioClient({ baseUrl: "http://p", recognizers, fetchImpl: fakeFetch(() => Response.json(codePointResults)) });
+    const spans = await client.analyze({ id: "c1", text: TEXT2, lang: "da" }, { signal: new AbortController().signal });
+    expect(spans.map((s) => TEXT2.slice(s.start, s.end))).toEqual(["Mette Sørensen", "mette.sorensen@fabrikam.dk"]);
+  });
 });

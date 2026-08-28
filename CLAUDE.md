@@ -38,7 +38,9 @@ When reporting that something is fixed or done, include the actual test output �
 
 An MCP proxy the developer registers *as* `zendesk`. One request path, one direction:
 `src/server/proxy.ts` (tool allowlist check) → `src/upstream/child.ts` (spawns the real
-`@sshadows/zendesk-mcp-server` over stdio with a clean env) → `src/policy/resultSanitizer.ts`
+`@sshadows/zendesk-mcp-server` over stdio; the child receives the `ZENDESK_*` trio, `PATH`,
+and the MCP SDK's fixed safe-inherit list — HOME/TEMP/USERPROFILE-class variables, never this
+proxy's own `ZSAN_*` env) → `src/policy/resultSanitizer.ts`
 (decodes the tool result's JSON text, walks it via `src/policy/fieldPolicy.ts` to drop/keep/
 idOnly/sanitize each field by path) → `src/sanitize/session.ts` (one `SanitizeSession` per
 tool call: pass 1 = Presidio `analyze` for spans, pass 2 = a `SpanDetector` slot — `null` in

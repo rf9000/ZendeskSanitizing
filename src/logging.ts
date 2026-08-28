@@ -5,7 +5,9 @@ const ORDER: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 }
 
 const GUARDS: RegExp[] = [
   /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,   // email
-  /\b\d{6}-\d{4}\b/g,                                   // CPR with hyphen
+  /\b\d{6}-\d{4}\b/g,                                   // CPR — hyphenated shape only; a bare
+  // \b\d{10}\b guard would false-positive on ticket/user ids constantly, so it's deliberately
+  // not covered here (this is a log-line backstop, not the CPR redaction gate itself).
   /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/g,                  // IBAN-shaped
 ];
 

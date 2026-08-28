@@ -21,6 +21,9 @@ This is the only mode this plan implements. VM mode (below) ships in Plan 2.
    cp .env.example .env
    # edit .env: ZSAN_ZENDESK_SUBDOMAIN, ZSAN_ZENDESK_EMAIL, ZSAN_ZENDESK_API_TOKEN
    ```
+   Also set `ZSAN_PASS2=off` in `.env` for this plan — pass 2 (GLiNER/Ollama) arrives in
+   Plan 2, and the default, `required`, makes the proxy exit with code 2 at startup since no
+   pass-2 detector exists yet.
 2. Start the Presidio sidecar (analyzer only, laptop profile):
    ```sh
    docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile laptop up -d --build
@@ -28,21 +31,30 @@ This is the only mode this plan implements. VM mode (below) ships in Plan 2.
    Config under `sidecars/presidio/` is baked into the image — re-run this command after
    editing it. `config/recognizers/*.json` and `config/allowlist.txt` are read by the proxy
    process at runtime, so changes there need no rebuild.
-3. Smoke test the proxy on its own (pass 2 doesn't exist yet in this plan, so it must be
-   turned off explicitly — `ZSAN_PASS2=required`, the default, exits with an error):
+3. Smoke test the proxy on its own (with `ZSAN_PASS2=off` already set in `.env` from step 1):
    ```sh
-   ZSAN_PASS2=off bun run start
+   bun run start
    ```
    You should see a loud "pass 2 disabled" warning followed by "ready" on stderr.
-4. Register the proxy in Claude Code's `.mcp.json`, over stdio:
+4. Register the proxy in Claude Code's `.mcp.json`, over stdio. Claude Code runs MCP servers
+   with `cwd` set to *your project*, not this repo, so `bun run` won't find a `.env` here by
+   itself — pass it explicitly with `--env-file`:
    ```json
-   { "mcpServers": { "zendesk": { "type": "stdio", "command": "bun", "args": ["run", "C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/src/server/stdio.ts"] } } }
+   { "mcpServers": { "zendesk": { "type": "stdio", "command": "bun", "args": [
+       "run", "--env-file=C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/.env",
+       "C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/src/server/stdio.ts"
+   ] } } }
    ```
 
 **Single-registration rule:** before adding this, remove any existing raw `zendesk` MCP entry
 from every `.mcp.json` and from `~/.claude.json`. Only one `zendesk` MCP server may be
 registered at a time — if the real, unsanitized Zendesk server is still registered anywhere
 Claude Code reads config from, this proxy provides no protection at all.
+
+**What the upstream child's env actually contains:** the proxy spawns the real Zendesk MCP
+server with the `ZENDESK_*` trio, `PATH`, and the MCP SDK's fixed safe-inherit list
+(HOME/TEMP/USERPROFILE-class variables the SDK always adds, never the proxy's own env) —
+never this proxy's `ZSAN_*` variables or secrets such as `ANTHROPIC_API_KEY`.
 
 ## VM mode
 
@@ -115,3 +127,17 @@ Every tool call logs one line to stderr with entity **counts only** — never va
 A redaction guard also scans every log line for email/CPR/IBAN-shaped substrings and masks
 them before they're written, as a defense-in-depth backstop against a bug that accidentally
 formats raw PII into a log message.
+
+## Known limitations (Plan 1)
+
+- **No pass 2 yet.** Only Presidio (pattern/NER) runs; contextual PII that needs a second,
+  context-aware detector (addresses, usernames, names missed by NER) is not redacted until
+  Plan 2 wires in GLiNER/Ollama. `ZSAN_PASS2=off` must be set explicitly for this reason.
+- **`ORG_SUFFIX`/allowlist edge cases.** The org-suffix recognizer and the allowlist are both
+  pattern/term based; unusual company-name shapes or terms not yet in `config/allowlist.txt`
+  can be misclassified in either direction.
+- **Bare-phone/CPR coverage relies on pattern recognizers.** Phone and CPR detection (including
+  the bare 10-digit CPR case) comes from the ad-hoc regex recognizers in `config/recognizers/`,
+  gated by `isValidCpr`'s date check for CPR — not from a semantic understanding of the text.
+- **Child restart.** If the upstream Zendesk MCP child exits, every call returns
+  `UPSTREAM_UNAVAILABLE` until the proxy is restarted (automatic restart is Plan 2).

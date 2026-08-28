@@ -23,10 +23,3 @@ export function isAllowedTool(name: string): boolean {
 export function filterToolList<T extends { name: string }>(tools: T[]): T[] {
   return tools.filter((t) => isAllowedTool(t.name));
 }
-
-export class ToolNotAllowedError extends Error {
-  constructor(readonly tool: string) {
-    super(`tool not available through the sanitizing proxy: ${tool}`);
-    this.name = "ToolNotAllowedError";
-  }
-}

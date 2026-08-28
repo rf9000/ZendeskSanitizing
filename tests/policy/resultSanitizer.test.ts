@@ -73,6 +73,21 @@ describe("createResultSanitizer", () => {
     expect(result.content).toEqual([{ type: "text", text: "ok" }]);
   });
 
+  test("empty-string fields do not fail the whole call", async () => {
+    const newSessionThrowsOnEmpty = () => new SanitizeSession({
+      pass1: fakePass1((c) => {
+        if (c.text.length === 0) throw new Error("must not be called for empty text");
+        return spansByLiteral(c.text, [["x", "PERSON"]], "presidio");
+      }),
+      pass2: null, allowlist: emptyAllowlist(),
+      timeouts: { pass1Ms: 1000, pass2Ms: 1000 }, chunkMaxChars: 6000, concurrency: 2,
+    });
+    const rs = createResultSanitizer({ newSession: newSessionThrowsOnEmpty });
+    const { result } = await rs.sanitize({ content: [{ type: "text", text: JSON.stringify({ ticket: { subject: "x", raw_subject: "" } }, null, 2) }] });
+    const out = JSON.parse((result.content[0] as any).text);
+    expect(out.ticket.raw_subject).toBe("");
+  });
+
   test("sanitizer failure propagates (caller maps to MCP error)", async () => {
     const failing = () => new SanitizeSession({
       pass1: fakePass1(() => { throw new Error("down"); }), pass2: null, allowlist: emptyAllowlist(),

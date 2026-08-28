@@ -74,9 +74,11 @@ export class SanitizeSession {
     const callController = new AbortController();
     try {
       const spans1 = await this.runPool(flat, (piece) =>
-        this.withTimeout(this.deps.timeouts.pass1Ms, callController.signal, (signal) =>
-          this.deps.pass1.analyze({ id: piece.id, text: piece.text, lang: piece.lang }, { signal }),
-        ),
+        piece.text.length === 0
+          ? Promise.resolve([])
+          : this.withTimeout(this.deps.timeouts.pass1Ms, callController.signal, (signal) =>
+              this.deps.pass1.analyze({ id: piece.id, text: piece.text, lang: piece.lang }, { signal }),
+            ),
       );
       for (let i = 0; i < flat.length; i++) {
         const piece = flat[i]!;
@@ -88,9 +90,11 @@ export class SanitizeSession {
       if (this.deps.pass2 !== null) {
         const pass2 = this.deps.pass2;
         const spans2 = await this.runPool(flat, (piece) =>
-          this.withTimeout(this.deps.timeouts.pass2Ms, callController.signal, (signal) =>
-            pass2.detect({ id: piece.id, text: piece.text, lang: piece.lang }, { signal }),
-          ),
+          piece.text.length === 0
+            ? Promise.resolve([])
+            : this.withTimeout(this.deps.timeouts.pass2Ms, callController.signal, (signal) =>
+                pass2.detect({ id: piece.id, text: piece.text, lang: piece.lang }, { signal }),
+              ),
         );
         for (let i = 0; i < flat.length; i++) {
           const piece = flat[i]!;

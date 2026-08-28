@@ -122,6 +122,20 @@ describe("SanitizeSession", () => {
     expect(err.code).toBe("SANITIZER_INTERNAL");
   });
 
+  test("empty-text pieces skip the pass1 call entirely", async () => {
+    const pass1 = fakePass1((c) => {
+      if (c.text.length === 0) throw new Error("must not be called for empty text");
+      return spansByLiteral(c.text, [["friend", "PERSON"]], "presidio");
+    });
+    const deps = base({ pass1 });
+    const out = await new SanitizeSession(deps).sanitize([
+      { id: "a", text: "" },
+      { id: "b", text: "hello there friend" },
+    ]);
+    expect(out.texts.get("a")).toBe("");
+    expect(out.texts.get("b")).toBe("hello there [PERSON_1]");
+  });
+
   test("failure aborts in-flight sibling calls", async () => {
     let bSignal: AbortSignal | undefined;
     const pass1 = fakePass1((chunk, opts) => {

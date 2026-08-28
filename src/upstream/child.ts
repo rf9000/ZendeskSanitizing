@@ -14,6 +14,17 @@ export interface SpawnOptions {
   mkTempDir?: () => string;
 }
 
+/**
+ * Builds the command/args/env/cwd this proxy hands to `StdioClientTransport` for the upstream
+ * Zendesk MCP child. The `env` returned here is only PART of what the child actually receives:
+ * `StdioClientTransport` spawns with `{ ...getDefaultEnvironment(), ...env }`, where
+ * `getDefaultEnvironment()` is the MCP SDK's own fixed, hard-coded safe-inherit list —
+ * Windows: APPDATA, HOMEDRIVE, HOMEPATH, LOCALAPPDATA, PROCESSOR_ARCHITECTURE, SYSTEMDRIVE,
+ * SYSTEMROOT, TEMP, USERNAME, USERPROFILE, PROGRAMFILES; Unix: HOME, LOGNAME, SHELL, TERM, USER.
+ * So the child's real environment is the Zendesk trio + PATH (below) UNIONED with that fixed
+ * list — never the proxy's own `ZSAN_*` variables or secrets such as `ANTHROPIC_API_KEY`, which
+ * are never read from `process.env` here and are not part of the SDK's safe-inherit list either.
+ */
 export function buildSpawnSpec(opts: SpawnOptions): { command: string; args: string[]; env: Record<string, string>; cwd: string } {
   const platform = opts.platform ?? process.platform;
   const parts = opts.command.trim().split(/\s+/);

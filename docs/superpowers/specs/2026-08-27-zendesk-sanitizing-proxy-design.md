@@ -358,8 +358,9 @@ ZSAN_CHUNK_MAX_CHARS=6000      ZSAN_CONCURRENCY=4
 ZSAN_LOG_LEVEL=info
 ```
 
-Validated with Zod at startup; the child process receives **only** the `ZENDESK_*` trio plus
-`PATH`, with `cwd` set to an empty directory so upstream's `dotenv.config()` cannot pick up a
+Validated with Zod at startup; the child process receives the `ZENDESK_*` trio, `PATH`, and the
+MCP SDK's fixed safe-inherit list (HOME/TEMP/USERPROFILE-class variables, never the proxy's own
+env), with `cwd` set to an empty directory so upstream's `dotenv.config()` cannot pick up a
 stray `.env`. Upstream stderr is captured and logged at debug level after passing through the
 same redaction guard as the proxy's own logs (it prints the connected user's name and email at
 startup).
@@ -372,11 +373,15 @@ startup).
 ```
 
 `.mcp.json`, laptop mode (credentials come from the developer's `.env`, loaded by the proxy —
-never from `.mcp.json`):
+never from `.mcp.json`). Claude Code runs MCP servers with `cwd` set to the user's project, not
+this repo, so `bun run` won't find a `.env` here by itself — pass it explicitly with
+`--env-file`:
 
 ```json
-{ "mcpServers": { "zendesk": { "type": "stdio", "command": "bun",
-    "args": ["run", "C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/src/server/stdio.ts"] } } }
+{ "mcpServers": { "zendesk": { "type": "stdio", "command": "bun", "args": [
+    "run", "--env-file=C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/.env",
+    "C:/GeneralDev/DevOpsPullers/ZendeskSanitizing/src/server/stdio.ts"
+] } } }
 ```
 
 ## 10. Logging

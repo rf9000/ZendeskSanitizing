@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import pkg from "../../package.json";
 import { loadConfig } from "../config.ts";
 import { createLogger } from "../logging.ts";
 import { createResultSanitizer } from "../policy/resultSanitizer.ts";
@@ -40,19 +41,26 @@ const sanitizer = createResultSanitizer({
 const upstream = await spawnUpstream({ command: config.upstreamCommand, zendesk: config.zendesk, onStderrLine: (l) => logger.debug(l) });
 const server = createProxyServer({ upstream, sanitizer, logger });
 await server.connect(new StdioServerTransport());
-logger.info("zendesk-sanitizing-proxy ready (stdio, pass2=off)");
+logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (stdio, pass2=off)`);
 
 let closing = false;
 const shutdown = async () => {
   if (closing) return;
   closing = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await Promise.race([upstream.close(), new Promise<void>((done) => setTimeout(done, 3000))]);
+    await Promise.race([upstream.close(), new Promise<void>((done) => { timer = setTimeout(done, 3000); })]);
   } catch {
     // ignore — we're shutting down regardless
   } finally {
+    if (timer !== undefined) clearTimeout(timer);
     process.exit(0);
   }
 };
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+// The MCP client (Claude Code) closes stdin when it disconnects without sending SIGTERM first;
+// without these, the proxy (and the upstream Zendesk child it spawned) would linger forever.
+process.stdin.on("end", shutdown);
+process.stdin.on("close", shutdown);
+server.onclose = shutdown;
