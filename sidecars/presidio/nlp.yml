@@ -1,0 +1,20 @@
+nlp_engine_name: spacy
+models:
+  - lang_code: da
+    model_name: da_core_news_lg
+  - lang_code: en
+    model_name: en_core_web_lg
+  - lang_code: de
+    model_name: de_core_news_lg
+ner_model_configuration:
+  model_to_presidio_entity_mapping:
+    PER: PERSON
+    PERSON: PERSON
+    ORG: ORGANIZATION
+    LOC: LOCATION
+    GPE: LOCATION
+    NORP: NRP
+    MISC: MISC
+  low_confidence_score_multiplier: 0.4
+  low_score_entity_names: [ORGANIZATION, ORG]
+  labels_to_ignore: [CARDINAL, DATE, EVENT, FAC, LANGUAGE, LAW, MONEY, ORDINAL, PERCENT, PRODUCT, QUANTITY, TIME, WORK_OF_ART, MISC]

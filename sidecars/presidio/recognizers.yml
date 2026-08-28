@@ -1,0 +1,29 @@
+supported_languages: [da, en, de]
+global_regex_flags: 26
+recognizers:
+  - name: EmailRecognizer
+    type: predefined
+    supported_languages: [da, en, de]
+  - name: PhoneRecognizer
+    type: predefined
+    # PhoneRecognizer's built-in CONTEXT list is English-only ("phone", "mobile",
+    # "cell", ...), so without a per-language override, da/de phone matches never
+    # get the +0.35 context boost and stay pinned at the base score (0.4), which
+    # is below our patternThreshold (0.7). Override context per language so a
+    # nearby local word (telefon/nummer/...) can raise the score above threshold.
+    supported_languages:
+      - language: da
+        context: [telefon, tlf, nummer, mobil, mobilnummer, ring]
+      - language: en
+        context: [phone, number, telephone, cell, cellphone, mobile]
+      - language: de
+        context: [telefon, nummer, handynummer, rufnummer, anruf, mobil]
+  - name: IbanRecognizer
+    type: predefined
+    supported_languages: [da, en, de]
+  - name: CreditCardRecognizer
+    type: predefined
+    supported_languages: [da, en, de]
+  - name: SpacyRecognizer
+    type: predefined
+    supported_languages: [da, en, de]

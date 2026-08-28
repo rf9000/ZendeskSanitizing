@@ -1,0 +1,21 @@
+# Usage (laptop):  docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile laptop up -d --build
+services:
+  presidio-analyzer:
+    build:
+      context: ../sidecars/presidio
+      args:
+        PRESIDIO_ANALYZER_DIGEST: ${PRESIDIO_ANALYZER_DIGEST}
+        SPACY_MODEL_VERSION: ${SPACY_MODEL_VERSION}
+    image: zsan/presidio-analyzer:${SPACY_MODEL_VERSION}-${PRESIDIO_ANALYZER_VERSION}
+    profiles: [laptop, vm]
+    ports:
+      - "127.0.0.1:5002:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:3000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 4g
