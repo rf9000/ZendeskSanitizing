@@ -38,7 +38,10 @@
     }
   ],
   "expected": {
-    "absent": ["Mette Sørensen", "Mette", "Sørensen", "mette@contoso.example", "010190-1234", "12 34 56 78", "Contoso", "Lars Nielsen", "10.1.2.3", "Aarhus, Denmark", "attachments/token"],
+    "absent": ["Mette Sørensen", "mette@contoso.example", "010190-1234", "12 34 56 78", "Contoso", "Lars Nielsen", "10.1.2.3", "Aarhus, Denmark", "attachments/token"],
     "present": ["Vedhæftet faktura", "4711", "open", "Intern note"]
+  },
+  "expectedPass2": {
+    "absent": ["Mette", "Sørensen"]
   }
 }

@@ -1,0 +1,34 @@
+{
+  "ticket": {
+    "id": 5201,
+    "url": "https://acme.zendesk.com/api/v2/tickets/5201.json",
+    "subject": "Business Central integration errors for Jonathan Whitfield",
+    "raw_subject": "Business Central integration errors for Jonathan Whitfield",
+    "description": "Hello, my name is Jonathan Whitfield from Fabrikam Ltd. We use Business Central together with Document Capture, and everything broke after we upgraded to version 2.3.4 (+100 ms). Please call me on +44 20 7946 0958 or email jonathan@fabrikam-test.co.uk. The card on file is 4111 1111 1111 1111.\n\nBest regards, Jonathan",
+    "status": "open",
+    "priority": "high",
+    "requester_id": 910001,
+    "submitter_id": 910001,
+    "assignee_id": 100003,
+    "organization_id": 500010,
+    "tags": ["business_central", "billing"],
+    "custom_fields": [{ "id": 360001, "value": "Fabrikam Ltd" }, { "id": 360002, "value": null }],
+    "via": { "channel": "email", "source": { "from": { "address": "jonathan@fabrikam-test.co.uk", "name": "Jonathan Whitfield" }, "to": { "address": "support@acme.example" }, "rel": null } },
+    "created_at": "2026-02-10T08:00:00Z",
+    "requester": { "id": 910001, "name": "Jonathan Whitfield", "email": "jonathan@fabrikam-test.co.uk" }
+  },
+  "comments": [
+    {
+      "id": 1, "author_id": 910001, "public": true,
+      "body": "Hello, my name is Jonathan Whitfield from Fabrikam Ltd. We use Business Central together with Document Capture, and everything broke after we upgraded to version 2.3.4 (+100 ms). Please call me on +44 20 7946 0958 or email jonathan@fabrikam-test.co.uk. The card on file is 4111 1111 1111 1111.\n\nBest regards, Jonathan",
+      "html_body": "<p>Hello, my name is Jonathan Whitfield...</p>",
+      "plain_body": "Hello, my name is Jonathan Whitfield from Fabrikam Ltd. We use Business Central together with Document Capture, and everything broke after we upgraded to version 2.3.4 (+100 ms). Please call me on +44 20 7946 0958 or email jonathan@fabrikam-test.co.uk. The card on file is 4111 1111 1111 1111.\n\nBest regards, Jonathan",
+      "attachments": [],
+      "created_at": "2026-02-10T08:00:00Z"
+    }
+  ],
+  "expected": {
+    "absent": ["Jonathan Whitfield", "Whitfield", "Jonathan", "jonathan@fabrikam-test.co.uk", "+44 20 7946 0958", "4111 1111 1111 1111", "Fabrikam Ltd"],
+    "present": ["Business Central", "Document Capture", "+100", "2.3.4", "5201", "open", "high"]
+  }
+}

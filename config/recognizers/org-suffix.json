@@ -1,0 +1,12 @@
+{
+  "name": "ORG_SUFFIX",
+  "supported_entity": "ORGANIZATION",
+  "patterns": [
+    {
+      "name": "company_legal_suffix",
+      "regex": "(?<![\\w&.,'-])[A-Za-z\\u00C0-\\u024F][\\w\\u00C0-\\u024F&.,'-]*(?:\\s+[A-Za-z\\u00C0-\\u024F][\\w\\u00C0-\\u024F&.,'-]*){0,1}\\s+(?:ApS|A\\/S|GmbH|AG|Ltd\\.?|LLC|Inc\\.?|Corp\\.?|Gruppe|Group|Holding|Kommanditselskab|K\\/S)(?![\\w])",
+      "score": 0.6
+    }
+  ],
+  "context": []
+}

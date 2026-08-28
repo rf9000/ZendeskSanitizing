@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { applyFieldPolicy, fillFields, ruleFor } from "@/policy/fieldPolicy.ts";
 import fixture from "../fixtures/tickets/basic-da.json";
 
-const payload = (({ expected, ...rest }) => rest)(fixture as any);
+const payload = (({ expected, expectedPass2, ...rest }) => rest)(fixture as any);
 
 describe("ruleFor", () => {
   test("suffix rules skip array indices", () => {

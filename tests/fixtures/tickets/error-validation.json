@@ -1,0 +1,4 @@
+{
+  "expected": { "absent": ["Mette Sørensen"], "present": ["Validation Error"] },
+  "__rawText": "❌ Validation Error: requester Mette Sørensen not found\n\nDetails:\n{\"requester\":\"Mette Sørensen\"}"
+}

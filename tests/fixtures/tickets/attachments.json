@@ -1,0 +1,13 @@
+{
+  "attachments": [
+    { "id": 88301, "file_name": "faktura_MetteSørensen.pdf", "content_url": "https://acme.zendesk.com/attachments/token/abc123def/?name=faktura_MetteS%C3%B8rensen.pdf", "content_type": "application/pdf", "size": 154823, "comment_id": 1 },
+    { "id": 88302, "file_name": "network-diagram.png", "content_url": "https://acme.zendesk.com/attachments/token/xyz789ghi/?name=network-diagram.png", "content_type": "image/png", "size": 44210, "comment_id": 1 }
+  ],
+  "expected": {
+    "absent": ["token/"],
+    "present": ["application/pdf", "image/png", "faktura", "network-diagram.png", "88301", "88302"]
+  },
+  "expectedPass2": {
+    "absent": ["MetteSørensen"]
+  }
+}

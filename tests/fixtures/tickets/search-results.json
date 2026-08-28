@@ -1,0 +1,13 @@
+{
+  "results": [
+    { "id": 7001, "result_type": "ticket", "url": "https://acme.zendesk.com/api/v2/tickets/7001.json", "subject": "Invoice question from Mette Sørensen regarding order 88231", "status": "open", "priority": "normal" },
+    { "id": 7002, "result_type": "ticket", "url": "https://acme.zendesk.com/api/v2/tickets/7002.json", "subject": "Login issue for Lars Nielsen on the customer portal", "status": "pending", "priority": "low" },
+    { "id": 7003, "result_type": "ticket", "url": "https://acme.zendesk.com/api/v2/tickets/7003.json", "subject": "Katharina Vogelsang cannot access Business Central", "status": "open", "priority": "high" },
+    { "id": 900050, "result_type": "user", "name": "Lars Nielsen", "email": "lars@nielsen-test.dk" }
+  ],
+  "count": 4,
+  "expected": {
+    "absent": ["Mette Sørensen", "Lars Nielsen", "Katharina Vogelsang", "lars@nielsen-test.dk"],
+    "present": ["result_type", "count", "7001", "7002", "7003", "open", "Business Central"]
+  }
+}

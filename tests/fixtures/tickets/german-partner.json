@@ -1,0 +1,37 @@
+{
+  "ticket": {
+    "id": 6302,
+    "url": "https://acme.zendesk.com/api/v2/tickets/6302.json",
+    "subject": "Katharina Vogelsang meldet ein Problem mit Business Central",
+    "raw_subject": "Katharina Vogelsang meldet ein Problem mit Business Central",
+    "description": "Guten Tag, hier schreibt Katharina Vogelsang. Ich bin Kundin bei der Firma Muster GmbH. Wir nutzen Business Central mit Document Capture, aber die IBAN DE89370400440532013000 wird von Ihrem System abgelehnt. Meine Telefonnummer ist +49 30 901820, E-Mail katharina@muster-test.de. Unsere Adresse ist Musterstraße 12, 10115 Berlin.\n\nMit freundlichen Grüßen, Katharina",
+    "status": "open",
+    "priority": "normal",
+    "requester_id": 920001,
+    "submitter_id": 920001,
+    "assignee_id": 100004,
+    "organization_id": 500020,
+    "tags": ["business_central", "billing"],
+    "custom_fields": [{ "id": 360001, "value": "Muster GmbH" }],
+    "via": { "channel": "email", "source": { "from": { "address": "katharina@muster-test.de", "name": "Katharina Vogelsang" }, "to": { "address": "support@acme.example" }, "rel": null } },
+    "created_at": "2026-02-15T10:30:00Z",
+    "requester": { "id": 920001, "name": "Katharina Vogelsang", "email": "katharina@muster-test.de" }
+  },
+  "comments": [
+    {
+      "id": 1, "author_id": 920001, "public": true,
+      "body": "Guten Tag, hier schreibt Katharina Vogelsang. Ich bin Kundin bei der Firma Muster GmbH. Wir nutzen Business Central mit Document Capture, aber die IBAN DE89370400440532013000 wird von Ihrem System abgelehnt. Meine Telefonnummer ist +49 30 901820, E-Mail katharina@muster-test.de. Unsere Adresse ist Musterstraße 12, 10115 Berlin.\n\nMit freundlichen Grüßen, Katharina",
+      "html_body": "<p>Guten Tag, hier schreibt Katharina Vogelsang...</p>",
+      "plain_body": "Guten Tag, hier schreibt Katharina Vogelsang. Ich bin Kundin bei der Firma Muster GmbH. Wir nutzen Business Central mit Document Capture, aber die IBAN DE89370400440532013000 wird von Ihrem System abgelehnt. Meine Telefonnummer ist +49 30 901820, E-Mail katharina@muster-test.de. Unsere Adresse ist Musterstraße 12, 10115 Berlin.\n\nMit freundlichen Grüßen, Katharina",
+      "attachments": [],
+      "created_at": "2026-02-15T10:30:00Z"
+    }
+  ],
+  "expected": {
+    "absent": ["Katharina Vogelsang", "Vogelsang", "Katharina", "katharina@muster-test.de", "+49 30 901820", "DE89370400440532013000", "Muster GmbH"],
+    "present": ["Business Central", "Document Capture", "6302", "open"]
+  },
+  "expectedPass2": {
+    "absent": ["Musterstraße 12, 10115 Berlin"]
+  }
+}

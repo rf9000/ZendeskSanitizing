@@ -1,0 +1,20 @@
+{
+  "organization": {
+    "id": 500010,
+    "url": "https://acme.zendesk.com/api/v2/organizations/500010.json",
+    "name": "Contoso ApS",
+    "domain_names": ["contoso-test.dk", "contoso-support-test.dk"],
+    "details": "VIP account, escalate to Mette Sørensen directly.",
+    "notes": "Primary contact: Mette Sørensen, CFO. CPR on file: 010190-1234.",
+    "shared_tickets": false,
+    "shared_comments": false,
+    "tags": ["partner", "gold_tier"],
+    "organization_fields": {},
+    "created_at": "2025-11-01T09:00:00Z",
+    "updated_at": "2026-01-05T09:12:00Z"
+  },
+  "expected": {
+    "absent": ["Contoso ApS", "contoso-test.dk", "contoso-support-test.dk", "Mette Sørensen", "010190-1234", "VIP account", "Primary contact"],
+    "present": ["500010", "partner", "gold_tier", "shared_tickets", "false"]
+  }
+}
