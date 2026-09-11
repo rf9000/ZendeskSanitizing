@@ -1,0 +1,5 @@
+{$ZSAN_DOMAIN:localhost} {
+	reverse_proxy proxy:8080
+	# With a real ZSAN_DOMAIN and public DNS, Caddy provisions Let's Encrypt automatically.
+	# For a lab VM without public DNS, `localhost` uses Caddy's internal CA (self-signed).
+}

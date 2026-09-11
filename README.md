@@ -60,9 +60,69 @@ never this proxy's `ZSAN_*` variables or secrets such as `ANTHROPIC_API_KEY`.
 
 ## VM mode
 
-Delivered in Plan 2: the proxy runs on a dedicated VM over Streamable HTTP with bearer
-tokens, so Zendesk credentials never touch a developer laptop. See spec §3 for the full
-design (`docs/superpowers/specs/2026-08-27-zendesk-sanitizing-proxy-design.md`).
+The proxy runs on a dedicated VM over Streamable HTTP with per-developer bearer tokens, so
+Zendesk credentials never touch a developer laptop. See spec §3 for the full design
+(`docs/superpowers/specs/2026-08-27-zendesk-sanitizing-proxy-design.md`).
+
+**Security upgrade over laptop mode:** in VM mode, Zendesk credentials (`ZSAN_ZENDESK_*`)
+exist only in `/opt/zsan/.env` on the VM — never on a developer laptop, never in a client
+config, and never baked into the container image. Developers hold only a per-person bearer
+token that authenticates to the proxy's `/mcp` endpoint; the proxy still enforces the same
+tool allowlist and two-pass sanitization as laptop mode.
+
+**Prerequisites:** an Ubuntu 24.04 VM with a sudo-capable user and outbound internet access.
+A public DNS name pointed at the VM is optional — without one, Caddy falls back to a
+self-signed `localhost` certificate (fine for a lab VM, not for real developer use).
+
+**Setup (five steps):**
+
+1. Run `deploy/vm-setup.sh` on the VM (review it first — it installs Docker Engine, opens
+   only SSH + 443 in `ufw`, and creates `/opt/zsan`).
+2. `git clone` this repo onto the VM, e.g. into `/opt/zsan/app`.
+3. Create `/opt/zsan/.env` with `ZSAN_ZENDESK_SUBDOMAIN`/`_EMAIL`/`_API_TOKEN`,
+   `ZSAN_CLIENT_TOKENS` (`name:token,name:token`, each token at least 16 characters), and
+   `ZSAN_PASS2=required`. This file is read only via compose `env_file` — it is never baked
+   into the proxy image.
+4. `export ZSAN_DOMAIN=<your-dns-name>` (or leave unset to use the self-signed `localhost`
+   cert), then from `/opt/zsan/app`:
+   ```sh
+   docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile vm up -d --build
+   ```
+5. Verify: `curl -k https://localhost/healthz` (or `https://<your-dns-name>/healthz` with a
+   real domain) should return `{"status":"ok"}`.
+
+**Developer-side `.mcp.json`** (registers the VM proxy over HTTP instead of spawning it
+locally):
+
+```json
+{ "mcpServers": { "zendesk": { "type": "http", "url": "https://<vm-dns>/mcp",
+    "headers": { "Authorization": "Bearer ${ZSAN_TOKEN}" } } } }
+```
+
+Before relying on this form, verify that `${ZSAN_TOKEN}`-style env interpolation in
+`.mcp.json` `headers` actually works on your installed Claude Code version (spec §16 — this
+is an install-time check, not an assumption). If it doesn't, register the server directly
+instead:
+
+```sh
+claude mcp add --transport http zendesk https://<vm>/mcp --header "Authorization: Bearer <token>"
+```
+
+Each developer gets their own `name:token` entry in the VM's `ZSAN_CLIENT_TOKENS` — tokens
+are per-developer bearer credentials, not shared secrets, and are never logged (the proxy logs
+only the developer name a token resolves to, e.g. `http session opened for <name>`).
+
+**Local smoke of the `vm` profile** (no TLS domain needed — for developing/debugging this
+compose setup, not for normal use): `deploy/docker-compose.smoke.yml` is a committed override
+that publishes the proxy's port directly to `127.0.0.1:8080`, bypassing Caddy:
+
+```sh
+docker compose --env-file deploy/versions.env \
+  -f deploy/docker-compose.yml -f deploy/docker-compose.smoke.yml --profile vm up -d --build
+curl http://127.0.0.1:8080/healthz          # → 200 {"status":"ok"}
+curl -i http://127.0.0.1:8080/mcp           # → 401 (no bearer token)
+docker compose -f deploy/docker-compose.yml --profile vm down
+```
 
 ## Tools exposed
 

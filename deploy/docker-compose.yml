@@ -42,3 +42,47 @@ services:
       resources:
         limits:
           memory: 2g
+
+  # presidio-analyzer and gliner above bind to 127.0.0.1 on the host even under the vm
+  # profile — that's fine on the VM too, since only the proxy container talks to them
+  # (over the compose network) and Caddy is the only service that needs a public port.
+  proxy:
+    build:
+      context: ..
+      dockerfile: sidecars/proxy/Dockerfile
+    image: zsan/proxy:dev
+    profiles: [vm]
+    restart: unless-stopped
+    env_file:
+      - ${ZSAN_ENV_FILE:-/opt/zsan/.env}
+    environment:
+      ZSAN_TRANSPORT: http
+      ZSAN_HTTP_PORT: "8080"
+      ZSAN_PRESIDIO_URL: http://presidio-analyzer:3000
+      ZSAN_GLINER_URL: http://gliner:8000
+      ZSAN_UPSTREAM_COMMAND: zendesk-mcp
+    depends_on:
+      presidio-analyzer:
+        condition: service_healthy
+      gliner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"const r=await fetch('http://localhost:8080/healthz'); if(!r.ok) process.exit(1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [vm]
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ../deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - proxy
+
+volumes:
+  caddy-data: {}

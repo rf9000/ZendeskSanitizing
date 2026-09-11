@@ -1,0 +1,8 @@
+# Override for local smoke-testing (or VM debugging) of the vm profile: publishes the
+# proxy's HTTP port to localhost so it can be curled directly, bypassing Caddy/TLS.
+# Usage: docker compose --env-file deploy/versions.env \
+#          -f deploy/docker-compose.yml -f deploy/docker-compose.smoke.yml --profile vm up -d
+services:
+  proxy:
+    ports:
+      - "127.0.0.1:8080:8080"

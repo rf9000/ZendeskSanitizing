@@ -499,8 +499,10 @@ ZendeskSanitizing/
   step 2/3).
 - Exact memory footprint of three `lg` spaCy models in one analyzer process on the D4as_v5
   (expect ~3 GB; if higher, drop `de` to `md`).
-- Claude Code HTTP MCP: confirm `headers` with `${ENV}` interpolation works in `.mcp.json` on
-  the current Claude Code version; otherwise use `claude mcp add --transport http --header`.
+- Claude Code HTTP MCP: **install-time verification step** — before relying on the `.mcp.json`
+  form in the README's VM mode section, confirm `headers` with `${ENV}` interpolation actually
+  works in `.mcp.json` on the developer's installed Claude Code version; if it doesn't, fall
+  back to `claude mcp add --transport http --header` (also documented in the README).
 
 ## Changes from the initial spec
 
