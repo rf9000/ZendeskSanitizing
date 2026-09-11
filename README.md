@@ -10,6 +10,9 @@ holds Zendesk credentials directly in a client config.
 an invalid result, the tool call returns an MCP error. The raw payload is never returned as a
 fallback — an error beats a leak, always.
 
+> Explaining this to someone? [`docs/overview.md`](docs/overview.md) is the plain-language
+> summary: what is removed, what is kept, how it works, and where it is imperfect.
+
 ## Laptop mode
 
 **Prerequisites:** Bun ≥ 1.3, Docker Desktop.
