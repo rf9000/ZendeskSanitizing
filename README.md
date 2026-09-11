@@ -128,12 +128,19 @@ and one `name:token` (16+ chars) — never the repo's real `.env`, and never a f
 the repo:
 
 ```sh
-ZSAN_ENV_FILE=/path/to/your/throwaway.env docker compose --env-file deploy/versions.env \
+export ZSAN_ENV_FILE=/path/to/your/throwaway.env
+docker compose --env-file deploy/versions.env \
   -f deploy/docker-compose.yml -f deploy/docker-compose.smoke.yml --profile vm up -d --build
 curl http://127.0.0.1:8080/healthz          # → 200 {"status":"ok"}
 curl -i http://127.0.0.1:8080/mcp           # → 401 (no bearer token)
 docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.smoke.yml --profile vm down
 ```
+
+`ZSAN_ENV_FILE` must be `export`ed once, before both commands: `up` and `down` are separate
+invocations, and compose's `env_file: - ${ZSAN_ENV_FILE:-/opt/zsan/.env}` re-resolves that
+default on every invocation — a one-shot prefix on just the `up` line leaves `down` falling
+back to `/opt/zsan/.env`, which doesn't exist off the VM, and it errors out before doing
+anything.
 
 **Warning:** `presidio-analyzer` and `gliner` carry both the `laptop` and `vm` profiles, so
 the `down --profile vm` above stops and removes them too, not just `proxy`/`caddy`. If you were
