@@ -190,6 +190,21 @@ Blocked categories and why:
 - `bun run test:e2e` — the fixture regression gate (`tests/fixtures/tickets/`); needs Presidio
   up. Prints a scorecard of leaked/over-redacted strings per fixture on failure.
 
+## CI
+
+- **`.github/workflows/ci.yml`** — runs on every PR and every push to `main`, on a
+  GitHub-hosted `ubuntu-latest` runner: `bun install --frozen-lockfile`, `bun run typecheck`,
+  `bun test` (unit suite only — no network, no Docker).
+- **`.github/workflows/stack.yml`** — the contract + e2e gate (both Presidio-only and
+  GLiNER pass-2 fixture runs), on `workflow_dispatch` and a nightly cron. It needs Docker and
+  the sidecars, so it targets a **self-hosted** runner labeled `zsan`, which does not exist
+  yet. The job is gated with `if: ${{ vars.ZSAN_STACK_RUNNER == 'ready' }}` so it no-ops
+  (rather than failing nightly) until that runner exists. To arm it once the VM is ready:
+  1. Register a self-hosted runner on the VM with the label `zsan` (in addition to GitHub's
+     default labels).
+  2. Set the repo variable `ZSAN_STACK_RUNNER=ready` (Settings → Secrets and variables →
+     Actions → Variables).
+
 ## Configuration
 
 All variables are `ZSAN_*`, validated with Zod at startup (see `.env.example`):
