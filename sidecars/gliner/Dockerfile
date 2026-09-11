@@ -8,6 +8,8 @@ ENV GLINER_MODEL_ID=${GLINER_MODEL_ID} \
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 RUN python -c "from gliner import GLiNER; import os; GLiNER.from_pretrained(os.environ['GLINER_MODEL_ID'], revision=os.environ['GLINER_MODEL_REVISION'])"
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
 COPY app.py /app/app.py
 WORKDIR /app
 EXPOSE 8000

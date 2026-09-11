@@ -1,6 +1,6 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.14.0+cpu
 gliner==0.2.29
-protobuf
+protobuf==7.36.1
 fastapi==0.141.1
 uvicorn==0.52.4
