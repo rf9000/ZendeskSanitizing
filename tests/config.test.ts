@@ -47,15 +47,19 @@ describe("loadConfig", () => {
 
   test("http transport requires client tokens; token map parses", () => {
     expect(() => loadConfig({ ...minimal, ZSAN_TRANSPORT: "http" })).toThrow(/ZSAN_CLIENT_TOKENS/);
-    const c = loadConfig({ ...minimal, ZSAN_PASS2: "off", ZSAN_TRANSPORT: "http", ZSAN_CLIENT_TOKENS: "rene:tok1,mia:tok2" });
+    const c = loadConfig({ ...minimal, ZSAN_PASS2: "off", ZSAN_TRANSPORT: "http", ZSAN_CLIENT_TOKENS: "rene:tok1-abcdefghijk,mia:tok2-abcdefghijk" });
     expect(c.transport).toBe("http");
     expect(c.httpPort).toBe(8080);
-    expect(c.clientTokens.get("tok1")).toBe("rene");
-    expect(c.clientTokens.get("tok2")).toBe("mia");
+    expect(c.clientTokens.get("tok1-abcdefghijk")).toBe("rene");
+    expect(c.clientTokens.get("tok2-abcdefghijk")).toBe("mia");
     expect(loadConfig({ ...minimal, ZSAN_PASS2: "off" }).transport).toBe("stdio");
   });
 
   test("malformed client token entry (no colon) throws", () => {
     expect(() => loadConfig({ ...minimal, ZSAN_PASS2: "off", ZSAN_CLIENT_TOKENS: "rene-tok1" })).toThrow(/ZSAN_CLIENT_TOKENS/);
+  });
+
+  test("client token shorter than 16 chars throws", () => {
+    expect(() => loadConfig({ ...minimal, ZSAN_PASS2: "off", ZSAN_CLIENT_TOKENS: "rene:tooshort" })).toThrow(/ZSAN_CLIENT_TOKENS.*rene.*too short/);
   });
 });

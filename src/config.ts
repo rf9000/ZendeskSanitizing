@@ -34,6 +34,9 @@ function parseClientTokens(raw: string): Map<string, string> {
     }
     const name = trimmed.slice(0, idx);
     const token = trimmed.slice(idx + 1);
+    if (token.length < 16) {
+      throw new Error(`Invalid configuration:\n  - ZSAN_CLIENT_TOKENS: token for "${name}" is too short (min 16 chars)`);
+    }
     tokens.set(token, name);
   }
   return tokens;
