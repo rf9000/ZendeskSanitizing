@@ -1,5 +1,6 @@
 # Terms that must never be redacted. One per line. Case-insensitive.
 # A span is also allowed when its words are a subset of a multi-word term here.
+# Single-word terms are protected wherever they appear as whole words — keep them specific.
 # Owned by the GDPR owner via CODEOWNERS.
 Continia
 Continia Software
@@ -14,6 +15,7 @@ Payment Management
 Business Central
 Dynamics 365
 Dynamics NAV
+NAV
 Microsoft
 Microsoft Corp
 Microsoft Corporation

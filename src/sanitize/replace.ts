@@ -3,6 +3,29 @@ import type { Span, SpanSource } from "./types.ts";
 
 const SOURCE_RANK: Record<SpanSource, number> = { presidio: 0, gliner: 1, ollama: 2 };
 
+/** Subtracts `ranges` from `interval`, returning the surviving (possibly empty) sub-intervals. */
+function subtractRanges(interval: [number, number], ranges: Array<[number, number]>): Array<[number, number]> {
+  let segments: Array<[number, number]> = [interval];
+  for (const [a, b] of ranges) {
+    const next: Array<[number, number]> = [];
+    for (const [s0, s1] of segments) {
+      if (b <= s0 || s1 <= a) { next.push([s0, s1]); continue; }
+      if (s0 < a) next.push([s0, a]);
+      if (b < s1) next.push([b, s1]);
+    }
+    segments = next;
+  }
+  return segments;
+}
+
+/**
+ * Rank-ordered greedy resolution: a higher-ranked span always wins its full range. A lower-ranked
+ * span that only *partially* overlaps already-kept spans is trimmed to its non-overlapping
+ * remainder(s) — rather than dropped whole — so no character covered by any input span goes
+ * unredacted merely because a longer/stronger span happened to cover part of it. A span fully
+ * contained within already-kept spans has no remainder and is dropped, as before. Remainders
+ * shorter than 2 chars are dropped (consistent with `splitSpansAroundRanges`'s default `minLen`).
+ */
 export function resolveOverlaps(spans: Span[]): Span[] {
   const ranked = [...spans].sort((a, b) =>
     (b.end - b.start) - (a.end - a.start) ||
@@ -12,7 +35,10 @@ export function resolveOverlaps(spans: Span[]): Span[] {
   );
   const kept: Span[] = [];
   for (const sp of ranked) {
-    if (!kept.some((k) => sp.start < k.end && k.start < sp.end)) kept.push(sp);
+    const keptRanges: Array<[number, number]> = kept.map((k) => [k.start, k.end]);
+    for (const [s0, s1] of subtractRanges([sp.start, sp.end], keptRanges)) {
+      if (s1 - s0 >= 2) kept.push({ ...sp, start: s0, end: s1 });
+    }
   }
   return kept.sort((a, b) => a.start - b.start);
 }
@@ -32,16 +58,7 @@ export function splitSpansAroundRanges(spans: Span[], ranges: Array<[number, num
   if (ranges.length === 0) return spans;
   const out: Span[] = [];
   for (const sp of spans) {
-    let segments: Array<[number, number]> = [[sp.start, sp.end]];
-    for (const [a, b] of ranges) {
-      const next: Array<[number, number]> = [];
-      for (const [s0, s1] of segments) {
-        if (b <= s0 || s1 <= a) { next.push([s0, s1]); continue; }
-        if (s0 < a) next.push([s0, a]);
-        if (b < s1) next.push([b, s1]);
-      }
-      segments = next;
-    }
+    const segments = subtractRanges([sp.start, sp.end], ranges);
     if (segments.length === 1 && segments[0]![0] === sp.start && segments[0]![1] === sp.end) { out.push(sp); continue; }
     for (const [s0, s1] of segments) if (s1 - s0 >= minLen) out.push({ ...sp, start: s0, end: s1 });
   }

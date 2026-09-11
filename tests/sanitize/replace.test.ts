@@ -19,6 +19,13 @@ describe("resolveOverlaps", () => {
   test("non-overlapping spans are all kept, sorted", () => {
     expect(resolveOverlaps([s(10, 14), s(0, 5)])).toEqual([s(0, 5), s(10, 14)]);
   });
+  test("a partially-overlapping loser is trimmed to its remainder, not dropped whole", () => {
+    // A=[0,20) beats B=[15,50) split into [15,30)+[40,50) around a protected [30,40) range;
+    // A only outranks the [15,30) piece by length tie... use explicit post-split spans directly:
+    expect(
+      resolveOverlaps([s(0, 20, "PERSON", 0.9), s(15, 30, "ORG", 0.9), s(40, 50, "ORG", 0.9)]),
+    ).toEqual([s(0, 20, "PERSON", 0.9), s(20, 30, "ORG", 0.9), s(40, 50, "ORG", 0.9)]);
+  });
 });
 
 describe("applySpans", () => {
@@ -66,5 +73,11 @@ describe("splitSpansAroundRanges", () => {
   });
   test("a range in the middle splits a span in two", () => {
     expect(splitSpansAroundRanges([s(0, 30)], [[10, 20]])).toEqual([s(0, 10), s(20, 30)]);
+  });
+  test("both remainders shorter than minLen are dropped", () => {
+    expect(splitSpansAroundRanges([s(0, 12)], [[1, 11]])).toEqual([]);
+  });
+  test("both remainders exactly at minLen are kept", () => {
+    expect(splitSpansAroundRanges([s(0, 13)], [[2, 11]])).toEqual([s(0, 2), s(11, 13)]);
   });
 });

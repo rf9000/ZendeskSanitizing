@@ -210,4 +210,19 @@ describe("SanitizeSession", () => {
     // the two hard requirements are the assertions below.)
     expect(out.texts.get("c1")).toBe("the Business Central[ORG_1] reported it");
   });
+
+  test("an allowlisted term inside a detected email address survives, rest redacted", async () => {
+    const text = "skriv til mette@continia.dk tak";
+    const deps = base({
+      allowlist: Allowlist.fromText("Continia"),
+      pass1: fakePass1((c) => spansByLiteral(c.text, [["mette@continia.dk", "EMAIL"]], "presidio")),
+    });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text }]);
+    const result = out.texts.get("c1")!;
+    const withoutPlaceholders = result.replace(/\[[A-Z]+_\d+\]/g, "");
+    expect((withoutPlaceholders.match(/continia/gi) ?? []).length).toBe(1);
+    expect(withoutPlaceholders).not.toMatch(/mette/i);
+    expect(withoutPlaceholders).not.toMatch(/\.dk/i);
+    expect(result).toBe("skriv til [EMAIL_1]continia[EMAIL_2] tak");
+  });
 });

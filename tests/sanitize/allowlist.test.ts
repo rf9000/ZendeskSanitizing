@@ -55,4 +55,10 @@ describe("Allowlist", () => {
     const occ = Allowlist.fromText("Continia").findOccurrences("Continias product");
     expect(occ).toEqual([]);
   });
+
+  test("findOccurrences escapes punctuation in the term itself", () => {
+    const occ = Allowlist.fromText("Continia A/S").findOccurrences("ordre fra Continia A/S i dag");
+    expect(occ).toEqual([[10, 22]]);
+    expect("ordre fra Continia A/S i dag".slice(10, 22)).toBe("Continia A/S");
+  });
 });
