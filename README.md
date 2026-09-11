@@ -66,8 +66,8 @@ design (`docs/superpowers/specs/2026-08-27-zendesk-sanitizing-proxy-design.md`).
 
 ## Tools exposed
 
-Only these 8 read-only tools are forwarded; everything else is blocked before it reaches
-upstream and never appears in `tools/list`:
+These 9 tools are forwarded; everything else is blocked before it reaches upstream and never
+appears in `tools/list`:
 
 | Tool | Purpose |
 |---|---|
@@ -79,14 +79,22 @@ upstream and never appears in `tools/list`:
 | `get_organization` | Fetch one organization |
 | `list_organizations` | List organizations |
 | `support_info` | Zendesk instance metadata |
+| `add_ticket_comment` | forwarded — forced internal, placeholder bodies rejected |
+
+`add_ticket_comment` is the one write tool this proxy forwards, and only with outgoing
+inspection (spec §3.2): the proxy always rewrites the call to an internal-only note (any
+`type` other than `internal` is overridden, `author_id` is stripped) and rejects the call
+outright — before it ever reaches upstream — if `type: "public"` was requested or if the
+comment body still contains a sanitization placeholder like `[PERSON_1]`. The tool's
+description in `tools/list` is amended to disclose this.
 
 Blocked categories and why:
 
 - **Attachment/document analysis tools** (`analyze_ticket_images`, `analyze_ticket_documents`,
   `get_document_summary`) — they ship ticket content to the Anthropic API and a third-party
   converter, outside this proxy's control.
-- **All create/update/delete tools** — this proxy is read-only by design; no ticket mutation
-  path exists yet (`add_ticket_comment` is scoped for Plan 2, with outgoing inspection).
+- **All other create/update/delete tools** — this proxy is read-only otherwise; no other
+  ticket mutation path exists.
 - **`get_user` / `list_users`** — the response is PII by definition.
 
 ## Testing

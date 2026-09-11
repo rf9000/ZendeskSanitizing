@@ -13,7 +13,7 @@ function fakeUpstream(over: Partial<UpstreamClient> = {}): UpstreamClient & { ca
   const calls: Array<[string, unknown]> = [];
   return {
     calls,
-    async listTools() { return [{ name: "get_ticket", inputSchema: { type: "object" } }, { name: "delete_ticket", inputSchema: { type: "object" } }, { name: "search", inputSchema: { type: "object" } }]; },
+    async listTools() { return [{ name: "get_ticket", inputSchema: { type: "object" } }, { name: "delete_ticket", inputSchema: { type: "object" } }, { name: "search", inputSchema: { type: "object" } }, { name: "add_ticket_comment", description: "Append a comment.", inputSchema: { type: "object" } }]; },
     async callTool(name, args) { calls.push([name, args]); return { content: [{ type: "text", text: RAW }] }; },
     async close() {},
     ...over,
@@ -40,7 +40,7 @@ describe("proxy", () => {
     const lines: string[] = [];
     const client = await connect({ upstream: fakeUpstream(), sanitizer: okSanitizer, logger: createLogger({ level: "debug", sink: (l) => lines.push(l) }) });
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(["get_ticket", "search"]);
+    expect(tools.map((t) => t.name)).toEqual(["get_ticket", "search", "add_ticket_comment"]);
   });
 
   test("tools/call forwards, sanitizes, logs counts only", async () => {
@@ -119,5 +119,22 @@ describe("proxy", () => {
     expect(ticketIdFrom({ id: 4711 })).toBe("ticket 4711");
     expect(ticketIdFrom({ query: "type:ticket status:open" })).toBe("query");
     expect(ticketIdFrom({})).toBe("-");
+  });
+
+  test("public comment is rejected with a static error and never reaches upstream", async () => {
+    const up = fakeUpstream();
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "add_ticket_comment", arguments: { id: 1, body: "hi", type: "public" } }).catch((e) => e);
+    expect(String(err.message)).toContain("OUTGOING_REJECTED");
+    expect(up.calls).toEqual([]);
+  });
+
+  test("placeholder in body is rejected; clean internal comment is forwarded with author_id stripped", async () => {
+    const up = fakeUpstream();
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "add_ticket_comment", arguments: { id: 1, body: "tell [PERSON_1]" } }).catch((e) => e);
+    expect(String(err.message)).toContain("OUTGOING_REJECTED");
+    await client.callTool({ name: "add_ticket_comment", arguments: { id: 1, body: "resolved via KB-42", author_id: 7 } });
+    expect(up.calls).toEqual([["add_ticket_comment", { id: 1, body: "resolved via KB-42", type: "internal" }]]);
   });
 });

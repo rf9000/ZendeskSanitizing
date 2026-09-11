@@ -2,7 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { formatCounts, type Logger } from "../logging.ts";
 import type { SanitizedResult, ToolResult } from "../policy/resultSanitizer.ts";
-import { filterToolList, isAllowedTool } from "../policy/toolPolicy.ts";
+import { OutgoingRejectedError, amendToolList, isAllowedTool, rewriteOutgoingArguments } from "../policy/toolPolicy.ts";
 import { SanitizerError } from "../sanitize/types.ts";
 import type { UpstreamClient } from "../upstream/client.ts";
 
@@ -29,7 +29,7 @@ export function createProxyServer(deps: ProxyDeps): Server {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     try {
       const tools = await deps.upstream.listTools();
-      return { tools: filterToolList(tools) as never };
+      return { tools: amendToolList(tools) as never };
     } catch (e) {
       deps.logger.error(`tools/list: upstream failed (${errName(e)})`);
       throw new McpError(ErrorCode.InternalError, "UPSTREAM_UNAVAILABLE: the Zendesk MCP server did not respond");
@@ -38,10 +38,24 @@ export function createProxyServer(deps: ProxyDeps): Server {
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const name = req.params.name;
-    const args = (req.params.arguments ?? {}) as Record<string, unknown>;
+    let args = (req.params.arguments ?? {}) as Record<string, unknown>;
     if (!isAllowedTool(name)) {
       deps.logger.warn(`${name} blocked`);
       throw new McpError(ErrorCode.InvalidParams, `TOOL_NOT_ALLOWED: ${name} is not available through the sanitizing proxy`);
+    }
+
+    try {
+      args = rewriteOutgoingArguments(name, args);
+    } catch (e) {
+      if (e instanceof OutgoingRejectedError) {
+        deps.logger.warn(`${name} outgoing rejected (${e.reason})`);
+        const sentence =
+          e.reason === "public_comment"
+            ? "the sanitizing proxy only posts internal notes — omit type or pass 'internal'"
+            : "the comment body contains sanitization placeholders like [PERSON_1]; replace them with real text before posting";
+        throw new McpError(ErrorCode.InvalidParams, `OUTGOING_REJECTED: ${sentence}`);
+      }
+      throw e;
     }
 
     const started = now();
