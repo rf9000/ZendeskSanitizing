@@ -58,7 +58,10 @@ export class GlinerDetector implements SpanDetector {
     const spans: Span[] = [];
     let malformedDropped = 0;
     for (const r of spansRaw as GlinerSpan[]) {
-      const type = this.config.labelMap[r?.label];
+      // Own-property lookup only: a label like "constructor" must not resolve through
+      // Object.prototype and smuggle in a span with a bogus type.
+      const label = r?.label;
+      const type = typeof label === "string" && Object.hasOwn(this.config.labelMap, label) ? this.config.labelMap[label] : undefined;
       if (!type) continue; // unmapped label: by design, not a malformed-output signal
       if (typeof r.score !== "number" || r.score < this.config.threshold) {
         if (typeof r.score !== "number") malformedDropped++; // non-numeric score is malformed; below-threshold is by design

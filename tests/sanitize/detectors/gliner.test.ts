@@ -180,3 +180,25 @@ describe("loadGlinerConfig", () => {
     expect(Object.values(c.labelMap)).not.toContain("ORG");
   });
 });
+
+describe("GlinerDetector label lookup", () => {
+  test("a prototype-chain label name is dropped, not mapped", async () => {
+    const d = new GlinerDetector({
+      baseUrl: "http://g",
+      config: { threshold: 0.4, labels: ["person name"], labelMap: { "person name": "PERSON" } },
+      fetchImpl: ((_u: string | URL | Request, _i?: RequestInit) =>
+        Promise.resolve(
+          Response.json({
+            spans: [
+              { start: 0, end: 3, label: "constructor", score: 0.9 },
+              { start: 4, end: 7, label: "toString", score: 0.9 },
+              { start: 0, end: 3, label: "person name", score: 0.9 },
+            ],
+          }),
+        )) as typeof fetch,
+    });
+    const spans = await d.detect({ id: "c", text: "abc def" }, { signal: new AbortController().signal });
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.type).toBe("PERSON");
+  });
+});
