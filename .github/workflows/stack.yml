@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "30 2 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: zsan-stack
+  cancel-in-progress: false
 jobs:
   contract-e2e:
     if: ${{ vars.ZSAN_STACK_RUNNER == 'ready' }}

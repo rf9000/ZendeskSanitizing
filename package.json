@@ -1,15 +1,15 @@
 {
   "name": "zendesk-sanitizing-proxy",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "bun run src/server/stdio.ts",
     "start:http": "ZSAN_TRANSPORT=http bun run src/server/stdio.ts",
-    "test": "bun test --preload ./tests/setup.ts tests/**/*.test.ts",
-    "test:unit": "bun test --preload ./tests/setup.ts tests/config.test.ts tests/logging.test.ts tests/sanitize tests/policy tests/upstream tests/server",
-    "test:contract": "ZSAN_CONTRACT=1 bun test --preload ./tests/setup.ts tests/contract",
-    "test:e2e": "ZSAN_E2E=1 bun test --preload ./tests/setup.ts tests/e2e",
+    "test": "bun test tests/**/*.test.ts",
+    "test:unit": "bun test tests/config.test.ts tests/logging.test.ts tests/sanitize tests/policy tests/upstream tests/server",
+    "test:contract": "ZSAN_CONTRACT=1 bun test tests/contract",
+    "test:e2e": "ZSAN_E2E=1 bun test tests/e2e",
     "test:e2e:pass2": "ZSAN_E2E=1 ZSAN_E2E_PASS2=1 bun test tests/e2e --timeout 300000",
     "typecheck": "tsc --noEmit"
   },

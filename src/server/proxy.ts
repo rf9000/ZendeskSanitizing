@@ -1,5 +1,6 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } from "@modelcontextprotocol/sdk/types.js";
+import pkg from "../../package.json";
 import { formatCounts, type Logger } from "../logging.ts";
 import type { SanitizedResult, ToolResult } from "../policy/resultSanitizer.ts";
 import { OutgoingRejectedError, amendToolList, isAllowedTool, rewriteOutgoingArguments } from "../policy/toolPolicy.ts";
@@ -24,7 +25,7 @@ const errName = (e: unknown): string => (e instanceof Error ? e.name : typeof e)
 
 export function createProxyServer(deps: ProxyDeps): Server {
   const now = deps.now ?? Date.now;
-  const server = new Server({ name: "zendesk-sanitizing-proxy", version: "0.0.1" }, { capabilities: { tools: {} } });
+  const server = new Server({ name: "zendesk-sanitizing-proxy", version: pkg.version }, { capabilities: { tools: {} } });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     try {

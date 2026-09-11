@@ -44,8 +44,8 @@ and the MCP SDK's fixed safe-inherit list — HOME/TEMP/USERPROFILE-class variab
 proxy's own `ZSAN_*` env) → `src/policy/resultSanitizer.ts`
 (decodes the tool result's JSON text, walks it via `src/policy/fieldPolicy.ts` to drop/keep/
 idOnly/sanitize each field by path) → `src/sanitize/session.ts` (one `SanitizeSession` per
-tool call: pass 1 = Presidio `analyze` for spans, pass 2 = a `SpanDetector` slot — `null` in
-this plan, GLiNER in Plan 2 — re-run on pass 1's already-redacted text; spans become
+tool call: pass 1 = Presidio `analyze` for spans, pass 2 = a `SpanDetector` slot — GLiNER by
+default and required unless `ZSAN_PASS2=off` — re-run on pass 1's already-redacted text; spans become
 `[TYPE_n]` placeholders via a shared per-session table so the same value always gets the same
 placeholder). Everything is fail-closed: an unreachable/timed-out/invalid sanitizer call
 throws and the tool call returns an MCP error — the raw payload is never returned as a

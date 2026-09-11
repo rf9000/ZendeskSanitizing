@@ -115,6 +115,11 @@ describe("proxy", () => {
     expect(String(err.message)).toContain("SANITIZER_INTERNAL");
   });
 
+  test("server reports the package version", async () => {
+    const client = await connect({ upstream: fakeUpstream(), sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    expect(client.getServerVersion()?.version).toBe("0.1.0");
+  });
+
   test("ticketIdFrom", () => {
     expect(ticketIdFrom({ id: 4711 })).toBe("ticket 4711");
     expect(ticketIdFrom({ query: "type:ticket status:open" })).toBe("query");

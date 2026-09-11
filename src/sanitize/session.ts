@@ -23,7 +23,6 @@ export interface SanitizeOutput {
 
 /** One `splitText` piece, mutated in place as later passes are applied. */
 interface Piece {
-  readonly chunkIndex: number;
   readonly id: string;
   readonly lang: Lang;
   text: string;
@@ -60,10 +59,9 @@ export class SanitizeSession {
     }
 
     // Pieces grouped per chunk (for the final join) and as one flat, input-ordered list (for pooling).
-    const chunkPieces: Piece[][] = chunks.map((chunk, chunkIndex) => {
+    const chunkPieces: Piece[][] = chunks.map((chunk) => {
       const lang = chunk.lang ?? this.detectLang(chunk.text);
       return splitText(chunk.text, this.deps.chunkMaxChars).map((text, pieceIndex) => ({
-        chunkIndex,
         id: `${chunk.id}#${pieceIndex}`,
         lang,
         text,

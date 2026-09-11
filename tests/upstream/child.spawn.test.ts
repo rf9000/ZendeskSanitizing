@@ -1,6 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildSpawnSpec } from "@/upstream/child.ts";
+
+// One temp dir reused across the file's runs (instead of buildSpawnSpec's default of minting a
+// fresh `zsan-upstream-*` dir per run), removed in afterAll — so repeat test runs stop littering
+// the OS temp dir with orphaned directories.
+const spawnTempDir = mkdtempSync(join(tmpdir(), "zsan-spawntest-"));
+afterAll(() => {
+  rmSync(spawnTempDir, { recursive: true, force: true });
+});
 
 // Integration test: buildSpawnSpec's env, passed through a REAL spawn (not the MCP transport).
 // StdioClientTransport itself layers `{ ...getDefaultEnvironment(), ...env }` on top of what we
@@ -16,7 +26,7 @@ describe("buildSpawnSpec env, through a real spawn", () => {
     const prev = process.env.ZSAN_ZENDESK_API_TOKEN;
     process.env.ZSAN_ZENDESK_API_TOKEN = "should-not-leak";
     try {
-      const spec = buildSpawnSpec({ command: "npx -y @sshadows/zendesk-mcp-server@1.4.1", zendesk, onStderrLine: () => {} });
+      const spec = buildSpawnSpec({ command: "npx -y @sshadows/zendesk-mcp-server@1.4.1", zendesk, onStderrLine: () => {}, mkTempDir: () => spawnTempDir });
       const result = Bun.spawnSync(["bun", "run", scriptPath], { env: spec.env, cwd: spec.cwd });
       expect(result.exitCode).toBe(0);
       const childEnv = JSON.parse(result.stdout.toString("utf8"));

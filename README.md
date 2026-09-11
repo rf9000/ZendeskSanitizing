@@ -216,9 +216,9 @@ All variables are `ZSAN_*`, validated with Zod at startup (see `.env.example`):
 | `ZSAN_ZENDESK_API_TOKEN` | *(required)* | Zendesk API token |
 | `ZSAN_UPSTREAM_COMMAND` | `npx -y @sshadows/zendesk-mcp-server@1.4.1` | Command spawned as the upstream MCP child |
 | `ZSAN_PRESIDIO_URL` | `http://127.0.0.1:5002` | Presidio analyzer base URL |
-| `ZSAN_PASS2` | `required` | `required` \| `off` — `off` is logged loudly at startup |
-| `ZSAN_PASS2_DETECTOR` | `gliner` | `gliner` \| `ollama` (Plan 2) |
-| `ZSAN_GLINER_URL` | *(unset)* | GLiNER sidecar URL (Plan 2) |
+| `ZSAN_PASS2` | `required` | `required` \| `off` — pass 2 (GLiNER) is required by default; `off` is logged loudly at startup |
+| `ZSAN_PASS2_DETECTOR` | `gliner` | `gliner` \| `ollama` — `ollama` is not implemented and `buildSanitizer` rejects it with a clear error (post-v0.1.0 bake-off item) |
+| `ZSAN_GLINER_URL` | *(unset)* | GLiNER sidecar URL |
 | `ZSAN_PRESIDIO_TIMEOUT_MS` | `15000` | Pass-1 call timeout |
 | `ZSAN_PASS2_TIMEOUT_MS` | `20000` | Pass-2 call timeout |
 | `ZSAN_CHUNK_MAX_CHARS` | `6000` | Max characters per text chunk sent to a detector |

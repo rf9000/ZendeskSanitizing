@@ -1,0 +1,7 @@
+# Sanitization behaviour must not change without the GDPR owner's review (spec §12).
+# TODO(owner): replace @rf9000 with the GDPR owner's GitHub handle.
+/config/                @rf9000
+/sidecars/              @rf9000
+/deploy/versions.env    @rf9000
+/src/policy/            @rf9000
+/src/sanitize/          @rf9000
