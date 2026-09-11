@@ -56,12 +56,27 @@ export class GlinerDetector implements SpanDetector {
 
     const map = codePointToUtf16Map(chunk.text);
     const spans: Span[] = [];
+    let malformedDropped = 0;
     for (const r of spansRaw as GlinerSpan[]) {
       const type = this.config.labelMap[r?.label];
-      if (!type) continue;
-      if (typeof r.score !== "number" || r.score < this.config.threshold) continue;
-      if (!Number.isInteger(r.start) || !Number.isInteger(r.end) || r.start < 0 || r.end > map.length - 1 || r.end <= r.start) continue;
+      if (!type) continue; // unmapped label: by design, not a malformed-output signal
+      if (typeof r.score !== "number" || r.score < this.config.threshold) {
+        if (typeof r.score !== "number") malformedDropped++; // non-numeric score is malformed; below-threshold is by design
+        continue;
+      }
+      if (!Number.isInteger(r.start) || !Number.isInteger(r.end) || r.start < 0 || r.end > map.length - 1 || r.end <= r.start) {
+        malformedDropped++;
+        continue;
+      }
       spans.push({ start: map[r.start]!, end: map[r.end]!, type, score: r.score, source: "gliner" });
+    }
+    // Spec §8 circuit breaker: if the sidecar returns a mostly-malformed batch (bad offsets/score —
+    // never below-threshold or unmapped-label drops, which are by design), fail closed rather than
+    // silently under-redacting. Guarded by totalReturnedSpans >= 5 so a single bad span in a tiny
+    // result doesn't trip it.
+    const totalReturnedSpans = (spansRaw as unknown[]).length;
+    if (totalReturnedSpans >= 5 && malformedDropped / totalReturnedSpans > 0.2) {
+      throw new SanitizerError("SANITIZER_INVALID_OUTPUT", "gliner returned mostly malformed spans");
     }
     return spans;
   }

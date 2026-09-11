@@ -50,6 +50,10 @@ HTTP transport + VM deploy, CI, branch protection, CODEOWNERS, `v0.1.0`.
 - 2026-09-11: GLiNER threshold raised 0.4 → 0.65 (bare short tags like 'partner' were mislabeled
   PERSON at 0.4, and an allowlisted phrase over-redacted); German address + Danish lower-case tag
   both caught at 0.65.
+- 2026-09-11 (v0.1.0): spec §11's per-entity-type scorecard axis deferred — the e2e scorecard
+  reports per-language and per-fixture (pass 1 vs pass 2 split); the entity-type axis needs
+  per-string type tags on fixture expectations and lands with the Ollama bake-off. Per-detector
+  axis awaits the Ollama detector.
 
 ## Small code/test polish (non-blocking)
 

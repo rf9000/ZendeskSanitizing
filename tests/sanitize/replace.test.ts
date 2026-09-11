@@ -19,6 +19,9 @@ describe("resolveOverlaps", () => {
   test("non-overlapping spans are all kept, sorted", () => {
     expect(resolveOverlaps([s(10, 14), s(0, 5)])).toEqual([s(0, 5), s(10, 14)]);
   });
+  test("an untouched span passes through even if shorter than 2 chars", () => {
+    expect(resolveOverlaps([s(0, 1)])).toEqual([s(0, 1)]);
+  });
   test("a partially-overlapping loser is trimmed to its remainder, not dropped whole", () => {
     // A=[0,20) beats B=[15,50) split into [15,30)+[40,50) around a protected [30,40) range;
     // A only outranks the [15,30) piece by length tie... use explicit post-split spans directly:

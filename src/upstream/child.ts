@@ -3,6 +3,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import pkg from "../../package.json";
 import type { ToolResult } from "../policy/resultSanitizer.ts";
 import type { ToolDefinition, UpstreamClient } from "./client.ts";
 
@@ -49,7 +50,7 @@ export interface SpawnedUpstream extends UpstreamClient {
 export async function spawnUpstream(opts: SpawnOptions): Promise<SpawnedUpstream> {
   const spec = buildSpawnSpec(opts);
   const transport = new StdioClientTransport({ ...spec, stderr: "pipe" });
-  const client = new Client({ name: "zendesk-sanitizing-proxy", version: "0.0.1" });
+  const client = new Client({ name: "zendesk-sanitizing-proxy", version: pkg.version });
   await client.connect(transport);
 
   let buffer = "";

@@ -49,15 +49,68 @@ describe("GlinerDetector", () => {
   });
 
   test("drops malformed spans (missing/non-integer/out-of-range offsets, bad score)", async () => {
-    const TEXT = "abcdef";
+    // 16 valid 1-char spans + 4 malformed = 20 total, exactly at the 20% breaker boundary (not >20%).
+    const TEXT = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const validSpans = Array.from({ length: 16 }, (_, i) => ({ start: i, end: i + 1, label: "person name", score: 0.9 }));
+    const malformedSpans = [
+      { end: 3, label: "person name", score: 0.9 },
+      { start: "1", end: 3, label: "person name", score: 0.9 },
+      { start: 2, end: 99, label: "person name", score: 0.9 },
+      { start: 0, end: 3, label: "person name", score: "high" },
+    ];
+    const d = new GlinerDetector({
+      baseUrl: "http://g", config,
+      fetchImpl: fakeFetch(() => Response.json({ spans: [...validSpans, ...malformedSpans] })),
+    });
+    const spans = await d.detect({ id: "c", text: TEXT }, { signal: new AbortController().signal });
+    expect(spans).toHaveLength(16);
+  });
+
+  test("throws SANITIZER_INVALID_OUTPUT when >20% of returned spans are malformed (totalReturnedSpans >= 5)", async () => {
+    const TEXT = "abcdefghijklmnopqrstuvwxyz0123456789";
     const d = new GlinerDetector({
       baseUrl: "http://g", config,
       fetchImpl: fakeFetch(() => Response.json({ spans: [
         { start: 0, end: 3, label: "person name", score: 0.9 },
-        { end: 3, label: "person name", score: 0.9 },
-        { start: "1", end: 3, label: "person name", score: 0.9 },
-        { start: 2, end: 99, label: "person name", score: 0.9 },
-        { start: 0, end: 3, label: "person name", score: "high" },
+        { start: 4, end: 7, label: "person name", score: 0.9 },
+        { start: 8, end: 11, label: "person name", score: 0.9 },
+        { end: 3, label: "person name", score: 0.9 }, // malformed: missing start
+        { start: "1", end: 3, label: "person name", score: 0.9 }, // malformed: non-integer start
+        { start: 2, end: 99, label: "person name", score: 0.9 }, // malformed: out-of-range end
+      ] })),
+    });
+    const err = await d.detect({ id: "c", text: TEXT }, { signal: new AbortController().signal }).catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect((err as SanitizerError).code).toBe("SANITIZER_INVALID_OUTPUT");
+  });
+
+  test("resolves with the valid spans when malformed share is at or below 20% (1 of 6)", async () => {
+    const TEXT = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const d = new GlinerDetector({
+      baseUrl: "http://g", config,
+      fetchImpl: fakeFetch(() => Response.json({ spans: [
+        { start: 0, end: 3, label: "person name", score: 0.9 },
+        { start: 4, end: 7, label: "person name", score: 0.9 },
+        { start: 8, end: 11, label: "person name", score: 0.9 },
+        { start: 12, end: 15, label: "person name", score: 0.9 },
+        { start: 16, end: 19, label: "person name", score: 0.9 },
+        { end: 3, label: "person name", score: 0.9 }, // malformed: missing start
+      ] })),
+    });
+    const spans = await d.detect({ id: "c", text: TEXT }, { signal: new AbortController().signal });
+    expect(spans).toHaveLength(5);
+  });
+
+  test("below-threshold and unmapped-label drops never count toward the malformed circuit breaker", async () => {
+    const TEXT = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const d = new GlinerDetector({
+      baseUrl: "http://g", config,
+      fetchImpl: fakeFetch(() => Response.json({ spans: [
+        { start: 0, end: 3, label: "person name", score: 0.9 },
+        { start: 4, end: 7, label: "person name", score: 0.2 }, // below threshold
+        { start: 8, end: 11, label: "unknown label", score: 0.9 }, // unmapped label
+        { start: 12, end: 15, label: "person name", score: 0.2 }, // below threshold
+        { start: 16, end: 19, label: "unknown label", score: 0.9 }, // unmapped label
       ] })),
     });
     const spans = await d.detect({ id: "c", text: TEXT }, { signal: new AbortController().signal });

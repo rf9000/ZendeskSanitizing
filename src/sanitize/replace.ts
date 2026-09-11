@@ -36,7 +36,15 @@ export function resolveOverlaps(spans: Span[]): Span[] {
   const kept: Span[] = [];
   for (const sp of ranked) {
     const keptRanges: Array<[number, number]> = kept.map((k) => [k.start, k.end]);
-    for (const [s0, s1] of subtractRanges([sp.start, sp.end], keptRanges)) {
+    const segments = subtractRanges([sp.start, sp.end], keptRanges);
+    // A span untouched by any already-kept range passes through unchanged, however short — the
+    // same full-segment passthrough `splitSpansAroundRanges` gives an untouched span. Only a
+    // *trimmed* remainder (from a partial overlap) is subject to the 2-char minimum below.
+    if (segments.length === 1 && segments[0]![0] === sp.start && segments[0]![1] === sp.end) {
+      kept.push(sp);
+      continue;
+    }
+    for (const [s0, s1] of segments) {
       if (s1 - s0 >= 2) kept.push({ ...sp, start: s0, end: s1 });
     }
   }

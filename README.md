@@ -215,10 +215,15 @@ All variables are `ZSAN_*`, validated with Zod at startup (see `.env.example`):
 | `ZSAN_ZENDESK_EMAIL` | *(required)* | Zendesk API auth email |
 | `ZSAN_ZENDESK_API_TOKEN` | *(required)* | Zendesk API token |
 | `ZSAN_UPSTREAM_COMMAND` | `npx -y @sshadows/zendesk-mcp-server@1.4.1` | Command spawned as the upstream MCP child |
+| `ZSAN_TRANSPORT` | `stdio` | `stdio` \| `http` — laptop mode uses `stdio`; VM mode serves Streamable HTTP |
+| `ZSAN_HTTP_PORT` | `8080` | Port the HTTP transport listens on (only used when `ZSAN_TRANSPORT=http`) |
+| `ZSAN_CLIENT_TOKENS` | *(empty)* | `name:token,name:token,…` — each token at least 16 characters; required (at least one pair) when `ZSAN_TRANSPORT=http` |
 | `ZSAN_PRESIDIO_URL` | `http://127.0.0.1:5002` | Presidio analyzer base URL |
 | `ZSAN_PASS2` | `required` | `required` \| `off` — pass 2 (GLiNER) is required by default; `off` is logged loudly at startup |
 | `ZSAN_PASS2_DETECTOR` | `gliner` | `gliner` \| `ollama` — `ollama` is not implemented and `buildSanitizer` rejects it with a clear error (post-v0.1.0 bake-off item) |
 | `ZSAN_GLINER_URL` | *(unset)* | GLiNER sidecar URL |
+| `ZSAN_GLINER_MODEL_REF` | `urchade/gliner_multi_pii-v1@1fcf13e85f4eef5394e1fcd406cf2ca9ea82351d` | Pinned `repo@revision` GLiNER must be running; verified against the sidecar's `/healthz` at startup |
+| `ZSAN_GLINER_CONFIG_PATH` | `config/gliner.json` | Path to the GLiNER label/threshold config |
 | `ZSAN_PRESIDIO_TIMEOUT_MS` | `15000` | Pass-1 call timeout |
 | `ZSAN_PASS2_TIMEOUT_MS` | `20000` | Pass-2 call timeout |
 | `ZSAN_CHUNK_MAX_CHARS` | `6000` | Max characters per text chunk sent to a detector |
