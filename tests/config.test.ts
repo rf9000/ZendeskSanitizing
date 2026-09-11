@@ -9,7 +9,7 @@ const minimal = {
 
 describe("loadConfig", () => {
   test("applies defaults", () => {
-    const c = loadConfig(minimal);
+    const c = loadConfig({ ...minimal, ZSAN_GLINER_URL: "http://127.0.0.1:5003" });
     expect(c.zendesk.subdomain).toBe("acme");
     expect(c.upstreamCommand).toBe("npx -y @sshadows/zendesk-mcp-server@1.4.1");
     expect(c.presidioUrl).toBe("http://127.0.0.1:5002");
@@ -31,8 +31,17 @@ describe("loadConfig", () => {
   });
 
   test("coerces numeric tuning values", () => {
-    const c = loadConfig({ ...minimal, ZSAN_CONCURRENCY: "8", ZSAN_PRESIDIO_TIMEOUT_MS: "100" });
+    const c = loadConfig({ ...minimal, ZSAN_GLINER_URL: "http://127.0.0.1:5003", ZSAN_CONCURRENCY: "8", ZSAN_PRESIDIO_TIMEOUT_MS: "100" });
     expect(c.concurrency).toBe(8);
     expect(c.timeouts.presidioMs).toBe(100);
+  });
+
+  test("gliner defaults and required-url refinement", () => {
+    const c = loadConfig({ ...minimal, ZSAN_PASS2: "off" });
+    expect(c.glinerModelRef).toBe("urchade/gliner_multi_pii-v1@1fcf13e85f4eef5394e1fcd406cf2ca9ea82351d");
+    expect(c.glinerConfigPath).toBe("config/gliner.json");
+    expect(() => loadConfig({ ...minimal, ZSAN_PASS2: "required" })).toThrow(/ZSAN_GLINER_URL/);
+    const ok = loadConfig({ ...minimal, ZSAN_PASS2: "required", ZSAN_GLINER_URL: "http://127.0.0.1:5003" });
+    expect(ok.glinerUrl).toBe("http://127.0.0.1:5003");
   });
 });

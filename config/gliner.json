@@ -1,0 +1,21 @@
+{
+  "threshold": 0.4,
+  "labels": [
+    "person name",
+    "street address",
+    "postal address including city",
+    "username or account handle",
+    "organization or company name",
+    "phone number",
+    "email address"
+  ],
+  "labelMap": {
+    "person name": "PERSON",
+    "street address": "ADDRESS",
+    "postal address including city": "ADDRESS",
+    "username or account handle": "USERNAME",
+    "organization or company name": "ORG",
+    "phone number": "PHONE",
+    "email address": "EMAIL"
+  }
+}
