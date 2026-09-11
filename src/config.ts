@@ -18,7 +18,26 @@ const envSchema = z.object({
   ZSAN_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   ZSAN_ALLOWLIST_PATH: z.string().default("config/allowlist.txt"),
   ZSAN_RECOGNIZERS_PATH: z.string().default("config/recognizers"),
+  ZSAN_TRANSPORT: z.enum(["stdio", "http"]).default("stdio"),
+  ZSAN_HTTP_PORT: z.coerce.number().int().min(0).max(65535).default(8080),
+  ZSAN_CLIENT_TOKENS: z.string().default(""),
 });
+
+function parseClientTokens(raw: string): Map<string, string> {
+  const tokens = new Map<string, string>();
+  for (const entry of raw.split(",")) {
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    const idx = trimmed.indexOf(":");
+    if (idx <= 0 || idx === trimmed.length - 1) {
+      throw new Error(`Invalid configuration:\n  - ZSAN_CLIENT_TOKENS: malformed entry "${trimmed}" — expected name:token`);
+    }
+    const name = trimmed.slice(0, idx);
+    const token = trimmed.slice(idx + 1);
+    tokens.set(token, name);
+  }
+  return tokens;
+}
 
 export interface AppConfig {
   zendesk: { subdomain: string; email: string; apiToken: string };
@@ -35,6 +54,9 @@ export interface AppConfig {
   logLevel: "debug" | "info" | "warn" | "error";
   allowlistPath: string;
   recognizersPath: string;
+  transport: "stdio" | "http";
+  httpPort: number;
+  clientTokens: Map<string, string>;
 }
 
 export function loadConfig(env: Record<string, string | undefined> = process.env): AppConfig {
@@ -44,6 +66,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new Error(`Invalid configuration:\n${messages}`);
   }
   const p = result.data;
+  const clientTokens = parseClientTokens(p.ZSAN_CLIENT_TOKENS);
+  if (p.ZSAN_TRANSPORT === "http" && clientTokens.size === 0) {
+    throw new Error("Invalid configuration:\n  - ZSAN_CLIENT_TOKENS: at least one name:token pair is required when ZSAN_TRANSPORT=http");
+  }
   if (p.ZSAN_PASS2 === "required" && p.ZSAN_PASS2_DETECTOR === "gliner" && !p.ZSAN_GLINER_URL) {
     throw new Error("Invalid configuration:\n  - ZSAN_GLINER_URL: required when ZSAN_PASS2=required and ZSAN_PASS2_DETECTOR=gliner");
   }
@@ -62,5 +88,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     logLevel: p.ZSAN_LOG_LEVEL,
     allowlistPath: p.ZSAN_ALLOWLIST_PATH,
     recognizersPath: p.ZSAN_RECOGNIZERS_PATH,
+    transport: p.ZSAN_TRANSPORT,
+    httpPort: p.ZSAN_HTTP_PORT,
+    clientTokens,
   };
 }

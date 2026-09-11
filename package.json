@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/server/stdio.ts",
+    "start:http": "ZSAN_TRANSPORT=http bun run src/server/stdio.ts",
     "test": "bun test --preload ./tests/setup.ts tests/**/*.test.ts",
     "test:unit": "bun test --preload ./tests/setup.ts tests/config.test.ts tests/logging.test.ts tests/sanitize tests/policy tests/upstream tests/server",
     "test:contract": "ZSAN_CONTRACT=1 bun test --preload ./tests/setup.ts tests/contract",

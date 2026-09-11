@@ -44,4 +44,18 @@ describe("loadConfig", () => {
     const ok = loadConfig({ ...minimal, ZSAN_PASS2: "required", ZSAN_GLINER_URL: "http://127.0.0.1:5003" });
     expect(ok.glinerUrl).toBe("http://127.0.0.1:5003");
   });
+
+  test("http transport requires client tokens; token map parses", () => {
+    expect(() => loadConfig({ ...minimal, ZSAN_TRANSPORT: "http" })).toThrow(/ZSAN_CLIENT_TOKENS/);
+    const c = loadConfig({ ...minimal, ZSAN_PASS2: "off", ZSAN_TRANSPORT: "http", ZSAN_CLIENT_TOKENS: "rene:tok1,mia:tok2" });
+    expect(c.transport).toBe("http");
+    expect(c.httpPort).toBe(8080);
+    expect(c.clientTokens.get("tok1")).toBe("rene");
+    expect(c.clientTokens.get("tok2")).toBe("mia");
+    expect(loadConfig({ ...minimal, ZSAN_PASS2: "off" }).transport).toBe("stdio");
+  });
+
+  test("malformed client token entry (no colon) throws", () => {
+    expect(() => loadConfig({ ...minimal, ZSAN_PASS2: "off", ZSAN_CLIENT_TOKENS: "rene-tok1" })).toThrow(/ZSAN_CLIENT_TOKENS/);
+  });
 });

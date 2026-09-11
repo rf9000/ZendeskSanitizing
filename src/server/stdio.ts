@@ -4,6 +4,7 @@ import pkg from "../../package.json";
 import { loadConfig } from "../config.ts";
 import { createLogger } from "../logging.ts";
 import { createProxyServer } from "./proxy.ts";
+import { startHttpProxy } from "./http.ts";
 import { spawnUpstream } from "../upstream/child.ts";
 import { createRestartingUpstream } from "../upstream/restart.ts";
 import { buildSanitizer } from "./wiring.ts";
@@ -27,17 +28,22 @@ const upstream = await createRestartingUpstream({
   backoffMs: 2000,
   logger,
 });
-const server = createProxyServer({ upstream, sanitizer, logger });
-await server.connect(new StdioServerTransport());
-logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (stdio, pass2=${config.pass2 === "off" ? "off" : config.pass2Detector})`);
+const pass2Label = config.pass2 === "off" ? "off" : config.pass2Detector;
 
 let closing = false;
+let httpHandle: { port: number; stop(): Promise<void> } | undefined;
 const shutdown = async () => {
   if (closing) return;
   closing = true;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await Promise.race([upstream.close(), new Promise<void>((done) => { timer = setTimeout(done, 3000); })]);
+    await Promise.race([
+      (async () => {
+        if (httpHandle) await httpHandle.stop();
+        await upstream.close();
+      })(),
+      new Promise<void>((done) => { timer = setTimeout(done, 3000); }),
+    ]);
   } catch {
     // ignore — we're shutting down regardless
   } finally {
@@ -47,8 +53,23 @@ const shutdown = async () => {
 };
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
-// The MCP client (Claude Code) closes stdin when it disconnects without sending SIGTERM first;
-// without these, the proxy (and the upstream Zendesk child it spawned) would linger forever.
-process.stdin.on("end", shutdown);
-process.stdin.on("close", shutdown);
-server.onclose = shutdown;
+
+if (config.transport === "http") {
+  // VM mode: one shared upstream + sanitizer, a fresh MCP Server per HTTP session.
+  httpHandle = startHttpProxy({
+    createServer: () => createProxyServer({ upstream, sanitizer, logger }),
+    tokens: config.clientTokens,
+    port: config.httpPort,
+    logger,
+  });
+  logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (http, port ${httpHandle.port}, pass2=${pass2Label})`);
+} else {
+  const server = createProxyServer({ upstream, sanitizer, logger });
+  await server.connect(new StdioServerTransport());
+  logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (stdio, pass2=${pass2Label})`);
+  server.onclose = shutdown;
+  // The MCP client (Claude Code) closes stdin when it disconnects without sending SIGTERM first;
+  // without these, the proxy (and the upstream Zendesk child it spawned) would linger forever.
+  process.stdin.on("end", shutdown);
+  process.stdin.on("close", shutdown);
+}
