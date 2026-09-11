@@ -304,6 +304,14 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
 (Labels are zero-shot descriptions — changing them changes recall; the file sits under `config/` for CODEOWNERS. A label missing from `labelMap` means: drop that span.)
 
+> **Superseded by the 2026-09-11 D4 reversal.** The `"organization or company name": "ORG"`
+> `labelMap` entry above is no longer shipped — organizations are not redacted at all (see spec
+> D4). If this plan is ever (re-)executed, keep `"organization or company name"` in `labels`
+> (removing the label would distort the zero-shot scores of every other label — GLiNER's
+> confidence is conditioned on the whole label set it's given) but do **not** add it back to
+> `labelMap`; an unmapped label is dropped the same way any other unmapped label is. Do not
+> silently reinstate org redaction by restoring this block verbatim.
+
 - [ ] **Step 2: Write the failing tests**
 
 `tests/sanitize/detectors/gliner.test.ts`:

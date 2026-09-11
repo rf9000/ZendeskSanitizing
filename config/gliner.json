@@ -5,6 +5,7 @@
     "street address",
     "postal address including city",
     "username or account handle",
+    "organization or company name",
     "phone number",
     "email address"
   ],

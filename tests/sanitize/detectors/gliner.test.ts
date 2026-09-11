@@ -169,4 +169,14 @@ describe("loadGlinerConfig", () => {
     expect(c.labels.length).toBeGreaterThan(0);
     for (const label of Object.keys(c.labelMap)) expect(c.labels).toContain(label);
   });
+
+  // Organizations are no longer redacted (spec D4, reversed 2026-09-11): the shipped config
+  // keeps "organization or company name" in `labels` (removing it would distort the zero-shot
+  // scores of every other label — GLiNER's confidence is conditioned on the whole label set),
+  // but it must never appear in `labelMap`, so a returned span with that label is dropped as
+  // unmapped (same `if (!type) continue` path as any other label we don't map).
+  test("never maps anything to ORG", async () => {
+    const c = await loadGlinerConfig("config/gliner.json");
+    expect(Object.values(c.labelMap)).not.toContain("ORG");
+  });
 });

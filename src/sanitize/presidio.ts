@@ -13,6 +13,10 @@ export const PRESIDIO_ENTITY_MAP: Record<string, EntityType> = {
   DK_CPR: "CPR",
 };
 
+// "ORG" is retained here only for the shared EntityType/[ORG_n] placeholder grammar (session.ts,
+// placeholders.ts, replace.ts use it generically). Nothing in PRESIDIO_ENTITY_MAP maps to it
+// anymore (organizations are no longer redacted — spec D4, reversed 2026-09-11), so this set
+// member is inert in practice: analyze() can never produce a span typed "ORG".
 const NER_TYPES = new Set<EntityType>(["PERSON", "ORG"]);
 
 export interface PresidioClientOptions {

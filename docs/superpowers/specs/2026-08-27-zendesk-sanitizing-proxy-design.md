@@ -100,7 +100,9 @@ reuses the exact same code.
    4. spans → placeholders via the shared per-session table; replacement applied in TypeScript.
 7. **Encode**: write sanitized values back to their paths, re-serialize with the same
    formatting, restore the prefix.
-8. **Log**: `ticket 12345: PERSON 3, EMAIL 2, CPR 1, ORG 1 (pass1 5, pass2 2) 412ms`.
+8. **Log**: `ticket 12345: PERSON 3, EMAIL 2, CPR 1 (pass1 5, pass2 2) 412ms`. (`ORG` can never
+   appear in this line — `formatCounts` omits zero counts, and organizations are no longer
+   redacted; see D4.)
 9. Return to Claude Code.
 
 Any exception in steps 4–7 → MCP error with a generic message and an `errorCode`; nothing
@@ -194,7 +196,7 @@ proxy can refuse to start against an unexpected model.
 |---|---|
 | `get_ticket`, `get_ticket_comments`, `search`, `list_tickets`, `support_info` | forward, sanitize response |
 | `get_ticket_attachments` | forward; `content_url` dropped, `file_name` sanitized |
-| `get_organization`, `list_organizations` | forward, sanitize (org names → `[ORG_n]` unless allowlisted; contact fields dropped) |
+| `get_organization`, `list_organizations` | forward, sanitize (personal data only; organization names themselves are not redacted — see D4; contact fields dropped) |
 | `add_ticket_comment` | forward with `type` forced to `internal`, body placeholder scan, `author_id` stripped |
 | `analyze_ticket_images`, `analyze_ticket_documents`, `get_document_summary` | **blocked** — send raw attachments to Anthropic API / `converter.sshadows.dk` |
 | `get_user`, `list_users` | **blocked** — response is PII by definition |
@@ -319,7 +321,7 @@ default to **sanitize** (fail safe); unknown non-string fields are kept.
 | `**.tags[*]` | sanitize (tags sometimes contain customer names) |
 | `**.satisfaction_rating.comment` | sanitize |
 | `**.metadata.system.client`, `**.metadata.system.ip_address`, `**.metadata.system.location`, `**.metadata.system.latitude/longitude` | drop |
-| organization objects: `**.name` | sanitize (→ `[ORG_n]` unless allowlisted) |
+| organization objects: `**.name` | sanitize (personal data only; organization names themselves are not redacted — see D4) |
 | organization objects: `**.domain_names`, `**.details`, `**.notes`, `**.external_id` | drop |
 | user objects (inside search results) | reduce to `{ id }` |
 | `**.url`, `**.next_page`, `**.previous_page` | keep (API URLs contain only ids) |
