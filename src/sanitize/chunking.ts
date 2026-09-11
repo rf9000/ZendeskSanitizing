@@ -24,7 +24,13 @@ export function splitText(text: string, maxChars: number): string[] {
       if (cut > 0 && cut <= maxChars) break;
       cut = -1;
     }
-    if (cut <= 0) cut = maxChars; // hard cut
+    if (cut <= 0) {
+      cut = maxChars; // hard cut
+      // never split a surrogate pair: if the cut lands between a high and low surrogate, back up one unit
+      const before = rest.charCodeAt(cut - 1);
+      if (before >= 0xd800 && before <= 0xdbff) cut -= 1;
+      if (cut === 0) cut = maxChars + 1; // single unbreakable pair wider than the cap: take it whole
+    }
     pieces.push(rest.slice(0, cut));
     rest = rest.slice(cut);
   }

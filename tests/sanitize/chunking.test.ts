@@ -36,4 +36,14 @@ describe("splitText", () => {
     expect(() => splitText("abc", -1)).toThrow(RangeError);
     expect(() => splitText("abc", 2.5)).toThrow(RangeError);
   });
+
+  test("a hard cut never splits a surrogate pair", () => {
+    const text = "a".repeat(3) + "😀".repeat(4); // no boundaries; 😀 = 2 UTF-16 units
+    const pieces = splitText(text, 4); // naive cut at 4 would split the first emoji
+    expect(pieces.join("")).toBe(text);
+    for (const p of pieces) {
+      expect(p).not.toMatch(/^[\uDC00-\uDFFF]/); // no piece starts with a lone low surrogate
+      expect(p).not.toMatch(/[\uD800-\uDBFF]$/); // no piece ends with a lone high surrogate
+    }
+  });
 });

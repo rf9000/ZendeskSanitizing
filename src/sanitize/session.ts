@@ -151,20 +151,35 @@ export class SanitizeSession {
    * Bounds one client call to `ms`, aborting it early if `callSignal` (the whole-session abort,
    * fired on the first sibling failure) aborts first. Any rejection observed after the local
    * controller has aborted — for whatever reason — is normalized to SANITIZER_UNAVAILABLE.
+   *
+   * The abort signal alone is not enough: a detector that ignores its `AbortSignal` would keep
+   * `fn`'s promise pending forever, hanging `await fn(...)` right along with it. So this also
+   * races a deadline promise that rejects at `ms` regardless of whether `fn` ever settles — the
+   * abandoned `fn` promise's eventual rejection (once its own abort listener fires) is caught and
+   * normalized, but discarded by `Promise.race` if the deadline already won.
    */
   private async withTimeout<T>(ms: number, callSignal: AbortSignal, fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const controller = new AbortController();
     const onCallAbort = () => controller.abort();
     if (callSignal.aborted) controller.abort();
     else callSignal.addEventListener("abort", onCallAbort);
-    const timer = setTimeout(() => controller.abort(), ms);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_res, rej) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        rej(new SanitizerError("SANITIZER_UNAVAILABLE", `sanitizer call exceeded ${ms}ms`));
+      }, ms);
+    });
     try {
-      return await fn(controller.signal);
-    } catch (e) {
-      if (controller.signal.aborted) {
-        throw new SanitizerError("SANITIZER_UNAVAILABLE", "sanitizer call aborted or timed out");
-      }
-      throw e;
+      return await Promise.race([
+        fn(controller.signal).catch((e) => {
+          if (controller.signal.aborted) {
+            throw new SanitizerError("SANITIZER_UNAVAILABLE", "sanitizer call aborted or timed out");
+          }
+          throw e;
+        }),
+        deadline,
+      ]);
     } finally {
       clearTimeout(timer);
       callSignal.removeEventListener("abort", onCallAbort);

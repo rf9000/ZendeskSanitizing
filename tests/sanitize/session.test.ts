@@ -159,4 +159,14 @@ describe("SanitizeSession", () => {
     expect(err).toBeInstanceOf(SanitizerError);
     expect(bSignal?.aborted).toBe(true);
   });
+
+  test("a detector that ignores its AbortSignal is still cut off at the deadline", async () => {
+    const neverSettles = fakePass1(() => new Promise<never>(() => {})); // ignores signal, never resolves
+    const deps = base({ pass1: neverSettles, timeouts: { pass1Ms: 30, pass2Ms: 30 } });
+    const started = Date.now();
+    const err = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "hello there friend" }]).catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect((err as SanitizerError).code).toBe("SANITIZER_UNAVAILABLE");
+    expect(Date.now() - started).toBeLessThan(2000);
+  });
 });
