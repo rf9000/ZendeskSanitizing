@@ -56,4 +56,25 @@ describe("createRestartingUpstream", () => {
     await new Promise((r) => setTimeout(r, 30));
     expect(spawns).toBe(1);
   });
+
+  test("close() during an in-flight restart does not attach the child spawned by that restart", async () => {
+    const children = [fakeChild(), fakeChild()];
+    let spawns = 0;
+    let release!: (c: SpawnedUpstream) => void;
+    const gate = new Promise<SpawnedUpstream>((r) => { release = r; });
+    const factory = async () => {
+      spawns++;
+      return spawns === 1 ? children[0]! : gate;
+    };
+    const up = await createRestartingUpstream({ factory, backoffMs: 10, logger: logger() });
+    children[0]!.die();
+    await new Promise((r) => setTimeout(r, 20)); // past backoff — the second factory() call is now in flight, awaiting `gate`
+    await up.close();
+    release(children[1]!);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(children[1]!.closed).toBe(true);
+    const err = await up.listTools().catch((e) => e);
+    expect(String(err.message)).toContain("upstream unavailable");
+  });
 });

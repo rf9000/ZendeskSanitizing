@@ -20,8 +20,12 @@ export async function createRestartingUpstream(opts: RestartOptions): Promise<Up
       opts.logger.warn(`upstream child exited — restarting once in ${opts.backoffMs}ms`);
       setTimeout(async () => {
         if (shuttingDown) return;
-        try { attach(await opts.factory()); opts.logger.info("upstream child restarted"); }
-        catch { opts.logger.error("upstream child restart failed — staying down"); }
+        try {
+          const spawned = await opts.factory();
+          if (shuttingDown) { await spawned.close().catch(() => {}); return; }
+          attach(spawned);
+          opts.logger.info("upstream child restarted");
+        } catch { opts.logger.error("upstream child restart failed — staying down"); }
       }, opts.backoffMs);
     });
   };
