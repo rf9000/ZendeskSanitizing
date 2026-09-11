@@ -41,9 +41,14 @@ describe("splitText", () => {
     const text = "a".repeat(3) + "😀".repeat(4); // no boundaries; 😀 = 2 UTF-16 units
     const pieces = splitText(text, 4); // naive cut at 4 would split the first emoji
     expect(pieces.join("")).toBe(text);
+    expect(pieces).toEqual(["aaa", "😀😀", "😀😀"]);
     for (const p of pieces) {
       expect(p).not.toMatch(/^[\uDC00-\uDFFF]/); // no piece starts with a lone low surrogate
       expect(p).not.toMatch(/[\uD800-\uDBFF]$/); // no piece ends with a lone high surrogate
     }
+  });
+
+  test("a single surrogate pair wider than the cap is taken whole", () => {
+    expect(splitText("😀a", 1)).toEqual(["😀", "a"]);
   });
 });

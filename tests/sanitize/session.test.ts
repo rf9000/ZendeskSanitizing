@@ -61,7 +61,7 @@ describe("SanitizeSession", () => {
     expect(pass1.calls.every((c) => c.lang === "da")).toBe(true);
   });
 
-  test("pass 1 timeout → SANITIZER_UNAVAILABLE", async () => {
+  test("pass 1 deadline → SANITIZER_UNAVAILABLE", async () => {
     const pass1 = fakePass1((_c) => new Promise<never>((_res, rej) => setTimeout(() => rej(new SanitizerError("SANITIZER_UNAVAILABLE", "aborted")), 50)));
     const deps = base({ pass1, timeouts: { pass1Ms: 10, pass2Ms: 10 } });
     const err = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "x".repeat(30) }]).catch((e) => e);
@@ -158,6 +158,33 @@ describe("SanitizeSession", () => {
       .catch((e) => e);
     expect(err).toBeInstanceOf(SanitizerError);
     expect(bSignal?.aborted).toBe(true);
+  });
+
+  test("a call aborted via the session-level signal (not its own deadline) is normalized to SANITIZER_UNAVAILABLE, not left raw", async () => {
+    // This exercises withTimeout's cascade path directly. Note: a sibling-race version of this
+    // scenario (chunk "a" fails immediately, chunk "b" rejects on abort, assert on sanitize()'s
+    // overall error) is not viable — Promise.all commits to the FIRST sibling's own failure
+    // reason (the raw, non-SanitizerError one) before a cascade-aborted sibling can ever settle,
+    // so that path can never surface this branch's output at sanitize()'s top level; verified
+    // empirically both with and without the normalization branch present, the top-level result
+    // is identical (SANITIZER_INTERNAL from the first sibling), so it cannot discriminate red
+    // from green for this branch. Calling the private helper directly is the only deterministic
+    // way to pin the abort → SANITIZER_UNAVAILABLE normalization itself.
+    const session = new SanitizeSession(base());
+    const callController = new AbortController();
+    const pending = (session as unknown as { withTimeout: (ms: number, callSignal: AbortSignal, fn: (signal: AbortSignal) => Promise<unknown>) => Promise<unknown> }).withTimeout(
+      1000,
+      callController.signal,
+      (signal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new DOMException("The operation was aborted.", "AbortError")));
+        }),
+    );
+    callController.abort(); // simulates the whole-session abort fired by a sibling's independent failure
+    const err = await pending.catch((e) => e);
+    expect(err).toBeInstanceOf(SanitizerError);
+    expect((err as SanitizerError).code).toBe("SANITIZER_UNAVAILABLE");
+    expect((err as SanitizerError).message).toBe("sanitizer call aborted or timed out");
   });
 
   test("a detector that ignores its AbortSignal is still cut off at the deadline", async () => {
