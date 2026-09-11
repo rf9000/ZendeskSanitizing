@@ -61,26 +61,69 @@ describe("applySpans", () => {
     const out = applySpans(text, [s(0, 5), s(9, 12)], table);
     expect(out.text).toBe("[PERSON_1] 😀 [PERSON_2]");
   });
+
+  test("a span straddling a placeholder trims to its raw remainder instead of being dropped whole", () => {
+    const text = "Hilsen [PERSON_1] Nielsen ok";
+    const table = new PlaceholderTable();
+    // span covers "[PERSON_1] Nielsen" (indices 7..25)
+    const out = applySpans(text, [s(7, 25)], table);
+    expect(out.text).toBe("Hilsen [PERSON_1] [PERSON_1] ok");
+    expect(out.applied).toHaveLength(1);
+    expect(text.slice(out.applied[0]!.start, out.applied[0]!.end)).toBe("Nielsen");
+  });
+
+  test("a span fully inside a placeholder has no remainder and is dropped", () => {
+    const text = "Hilsen [PERSON_1] Nielsen ok";
+    const table = new PlaceholderTable();
+    // span covers exactly "[PERSON_1]" (indices 7..17)
+    const out = applySpans(text, [s(7, 17)], table);
+    expect(out.text).toBe(text);
+    expect(out.applied).toHaveLength(0);
+  });
+
+  test("a span straddling a placeholder on the left trims to its raw remainder", () => {
+    const text = "Hilsen [PERSON_1]";
+    const table = new PlaceholderTable();
+    // span covers "Hilsen [PERSON_1]" in full (indices 0..17)
+    const out = applySpans(text, [s(0, 17)], table);
+    expect(out.text).toBe("[PERSON_1] [PERSON_1]");
+    expect(out.applied).toHaveLength(1);
+    expect(text.slice(out.applied[0]!.start, out.applied[0]!.end)).toBe("Hilsen");
+  });
 });
 
 describe("splitSpansAroundRanges", () => {
   test("splits a span around a protected range, dropping short remainders", () => {
-    // text: "group via Continia A/S" — span [0,22), protected [10,22)
+    const text = "group via Continia A/S";
+    // span [0,22), protected [10,22) → remainder [0,10) is "group via " which then has its
+    // trailing space trimmed, leaving "group via" [0,9).
     const spans = [s(0, 22, "ORG")];
-    const out = splitSpansAroundRanges(spans, [[10, 22]]);
-    expect(out).toEqual([s(0, 10, "ORG")]); // "group via " survives as its own span
+    const out = splitSpansAroundRanges(spans, [[10, 22]], text);
+    expect(out).toEqual([s(0, 9, "ORG")]);
   });
   test("a span inside a protected range disappears; an untouched span passes through", () => {
-    expect(splitSpansAroundRanges([s(2, 6)], [[0, 10]])).toEqual([]);
-    expect(splitSpansAroundRanges([s(20, 30)], [[0, 10]])).toEqual([s(20, 30)]);
+    const text = "x".repeat(30);
+    expect(splitSpansAroundRanges([s(2, 6)], [[0, 10]], text)).toEqual([]);
+    expect(splitSpansAroundRanges([s(20, 30)], [[0, 10]], text)).toEqual([s(20, 30)]);
   });
   test("a range in the middle splits a span in two", () => {
-    expect(splitSpansAroundRanges([s(0, 30)], [[10, 20]])).toEqual([s(0, 10), s(20, 30)]);
+    const text = "x".repeat(30);
+    expect(splitSpansAroundRanges([s(0, 30)], [[10, 20]], text)).toEqual([s(0, 10), s(20, 30)]);
   });
   test("both remainders shorter than minLen are dropped", () => {
-    expect(splitSpansAroundRanges([s(0, 12)], [[1, 11]])).toEqual([]);
+    const text = "x".repeat(12);
+    expect(splitSpansAroundRanges([s(0, 12)], [[1, 11]], text)).toEqual([]);
   });
   test("both remainders exactly at minLen are kept", () => {
-    expect(splitSpansAroundRanges([s(0, 13)], [[2, 11]])).toEqual([s(0, 2), s(11, 13)]);
+    const text = "x".repeat(13);
+    expect(splitSpansAroundRanges([s(0, 13)], [[2, 11]], text)).toEqual([s(0, 2), s(11, 13)]);
+  });
+  test("a remainder that is whitespace-only is dropped", () => {
+    const text = "   abcdefg"; // remainder [0,3) is all spaces
+    expect(splitSpansAroundRanges([s(0, 10)], [[3, 10]], text)).toEqual([]);
+  });
+  test("a remainder with leading/trailing whitespace is shrunk to the non-whitespace core", () => {
+    const text = "aa   bb"; // range [2,3) removes one space, leaving remainders "aa" and "  bb"
+    expect(splitSpansAroundRanges([s(0, 7)], [[2, 3]], text)).toEqual([s(0, 2), s(5, 7)]);
   });
 });

@@ -89,7 +89,7 @@ HTTP transport + VM deploy, CI, branch protection, CODEOWNERS, `v0.1.0`.
 
 ## Plan 3 carry-over (added 2026-09-11, after the v0.1.0 final review)
 
-- Placeholder-overlap trimming in applySpans: a pass-2 span straddling a pass-1 placeholder is dropped whole; trim with subtractRanges instead (top recall follow-up).
+- ~~Placeholder-overlap trimming in applySpans: a pass-2 span straddling a pass-1 placeholder is dropped whole; trim with subtractRanges instead (top recall follow-up).~~ DONE (`feat/trim-spans-around-placeholders`): `applySpans` now runs surviving spans through `splitSpansAroundRanges` against placeholder ranges instead of filtering them out, and remainders are trimmed of edge whitespace.
 - Entity-type scorecard axis + per-detector axis (with the Ollama bake-off detector, spec §6.8).
 - Deterministic filename-stem redaction in the field policy ([FILE_n].pdf) — closes the one measured pass-2 gap (names inside attachment filenames); NEEDS USER DECISION.
 - Deploy hardening batch: pin caddy + proxy image tags, nodejs/npm versions in the proxy image, non-root proxy user, resource limits on proxy, authenticated or unproxied /healthz, scoped-down compose down commands.

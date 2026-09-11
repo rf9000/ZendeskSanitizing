@@ -142,7 +142,7 @@ export class SanitizeSession {
   private apply(text: string, spans: Span[]) {
     const filtered = this.deps.allowlist.filter(text, spans);
     const protectedRanges = this.deps.allowlist.findOccurrences(text);
-    const result = applySpans(text, splitSpansAroundRanges(filtered, protectedRanges), this.table);
+    const result = applySpans(text, splitSpansAroundRanges(filtered, protectedRanges, text), this.table);
     for (const sp of result.applied) this.counts[sp.type]++;
     return result;
   }

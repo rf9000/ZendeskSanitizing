@@ -275,7 +275,12 @@ Known false-merge risk (two different people sharing a first name) is accepted; 
 
 Spans from both sources are merged per chunk; overlapping spans resolve longest-first, ties by
 higher score, then Presidio before GLiNER. Replacement is applied right-to-left on the original
-string so offsets stay valid. The engine is the same for both passes.
+string so offsets stay valid. The engine is the same for both passes. A span that overlaps an
+existing `[TYPE_n]` placeholder token (from pass 1, or from an allowlisted-term occurrence) is
+trimmed to its non-overlapping remainder(s) rather than dropped whole, with whitespace shrunk off
+each remainder's edges — so a pass-2 span over-capturing an already-redacted value (e.g. GLiNER
+returning a span covering `[PERSON_1] Nielsen`) still redacts the raw part it straddles instead of
+letting it through unredacted; a span fully inside a placeholder has no remainder and disappears.
 
 ### 6.5 Language detection
 

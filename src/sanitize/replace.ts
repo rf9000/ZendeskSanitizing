@@ -57,18 +57,31 @@ function placeholderRanges(text: string): Array<[number, number]> {
   return ranges;
 }
 
+/** Shrinks `[start, end)` so it neither starts nor ends with whitespace, per `text`. */
+function trimWhitespace(text: string, start: number, end: number): [number, number] {
+  while (start < end && /\s/.test(text[start]!)) start++;
+  while (end > start && /\s/.test(text[end - 1]!)) end--;
+  return [start, end];
+}
+
 /**
- * Splits each span around any overlapping `ranges` (e.g. allowlisted-term occurrences), so the
- * protected text inside those ranges is never swallowed by a longer detected span. Remainders
- * shorter than `minLen` are dropped; a span untouched by any range passes through unchanged.
+ * Splits each span around any overlapping `ranges` (e.g. allowlisted-term occurrences or existing
+ * `[TYPE_n]` placeholder tokens), so the protected text inside those ranges is never swallowed by
+ * a longer detected span. Each remainder is then shrunk so it does not start or end with
+ * whitespace (e.g. splitting "[PERSON_1] Nielsen" around the placeholder leaves " Nielsen", which
+ * is trimmed to "Nielsen"). Remainders shorter than `minLen` (after trimming) are dropped; a span
+ * untouched by any range passes through unchanged.
  */
-export function splitSpansAroundRanges(spans: Span[], ranges: Array<[number, number]>, minLen = 2): Span[] {
+export function splitSpansAroundRanges(spans: Span[], ranges: Array<[number, number]>, text: string, minLen = 2): Span[] {
   if (ranges.length === 0) return spans;
   const out: Span[] = [];
   for (const sp of spans) {
     const segments = subtractRanges([sp.start, sp.end], ranges);
     if (segments.length === 1 && segments[0]![0] === sp.start && segments[0]![1] === sp.end) { out.push(sp); continue; }
-    for (const [s0, s1] of segments) if (s1 - s0 >= minLen) out.push({ ...sp, start: s0, end: s1 });
+    for (const [rawS0, rawS1] of segments) {
+      const [s0, s1] = trimWhitespace(text, rawS0, rawS1);
+      if (s1 - s0 >= minLen) out.push({ ...sp, start: s0, end: s1 });
+    }
   }
   return out;
 }
@@ -78,10 +91,13 @@ export function applySpans(text: string, spans: Span[], table: PlaceholderTable)
   const valid = spans.filter(
     (sp) =>
       Number.isInteger(sp.start) && Number.isInteger(sp.end) &&
-      sp.start >= 0 && sp.end <= text.length && sp.end > sp.start &&
-      !protectedRanges.some(([a, b]) => sp.start < b && a < sp.end),
+      sp.start >= 0 && sp.end <= text.length && sp.end > sp.start,
   );
-  const applied = resolveOverlaps(valid);
+  // A span overlapping an existing placeholder token is trimmed to its non-placeholder
+  // remainder(s), not dropped whole — a pass-2 span like "[PERSON_1] Nielsen" must still redact
+  // the raw "Nielsen" part. A span fully inside a placeholder yields no remainder and disappears.
+  const trimmed = splitSpansAroundRanges(valid, protectedRanges, text);
+  const applied = resolveOverlaps(trimmed);
   let out = text;
   // Assign placeholders left-to-right (stable numbering), replace right-to-left (stable offsets).
   const replacements = applied.map((sp) => table.placeholderFor(sp.type, text.slice(sp.start, sp.end)));

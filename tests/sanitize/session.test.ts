@@ -208,7 +208,27 @@ describe("SanitizeSession", () => {
     // (the brief's "no-op guard" line asserted `.not.toContain("".slice(0,0))`, i.e.
     // `.not.toContain("")`, which is false for every string — removed as a no-op that isn't one;
     // the two hard requirements are the assertions below.)
-    expect(out.texts.get("c1")).toBe("the Business Central[ORG_1] reported it");
+    // Updated for the trim-around-placeholders fix: splitSpansAroundRanges now shrinks whitespace
+    // off remainder edges, so the space between the allowlisted term and the placeholder survives
+    // instead of being swallowed into "Central[ORG_1]".
+    expect(out.texts.get("c1")).toBe("the Business Central [ORG_1] reported it");
+  });
+
+  test("a pass-2 span straddling a pass-1 placeholder is trimmed to its raw remainder, not dropped whole", async () => {
+    // GLiNER-style over-capture: pass 2 detects a span covering the pass-1 placeholder plus an
+    // adjacent, distinct surname that was never part of "Mette Sørensen". The straddling span must
+    // be trimmed to its raw remainder ("Nielsen") rather than dropped whole, so that remainder is
+    // still redacted — under-redaction is exactly the bug this fix closes.
+    const deps = base({
+      pass1: fakePass1((c) => spansByLiteral(c.text, [["Mette Sørensen", "PERSON"]], "presidio")),
+      // The fake receives pass 1's OUTPUT text ("Hilsen [PERSON_1] Nielsen"), so searching for the
+      // literal "[PERSON_1] Nielsen" against that text is the natural way to build this span.
+      pass2: fakeDetector("fake", (c) => spansByLiteral(c.text, [["[PERSON_1] Nielsen", "PERSON"]], "gliner")),
+    });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "Hilsen Mette Sørensen Nielsen" }]);
+    expect(out.texts.get("c1")).toBe("Hilsen [PERSON_1] [PERSON_2]");
+    expect(out.counts.PERSON).toBe(2);
+    expect(out.perPass).toEqual({ pass1: 1, pass2: 1 });
   });
 
   test("an allowlisted term inside a detected email address survives, rest redacted", async () => {
