@@ -68,6 +68,19 @@ describe("applyFieldPolicy + fillFields", () => {
   });
 });
 
+describe("applyFieldPolicy fix round 2", () => {
+  test("kind: filename requires the parent segment to be attachments/thumbnails, not any file_name field", () => {
+    const { fields } = applyFieldPolicy({
+      comments: [{ attachments: [{ file_name: "a.pdf" }], thumbnails: [{ file_name: "b.png" }] }],
+      named_custom_fields: { file_name: "not-an-attachment.pdf" },
+    }) as any;
+    const byPath = Object.fromEntries(fields.map((f: any) => [f.path, f.kind]));
+    expect(byPath["comments.0.attachments.0.file_name"]).toBe("filename");
+    expect(byPath["comments.0.thumbnails.0.file_name"]).toBe("filename");
+    expect(byPath["named_custom_fields.file_name"]).toBeUndefined();
+  });
+});
+
 describe("applyFieldPolicy fix round 1", () => {
   test("search-result user objects are reduced to { id, result_type }", () => {
     const { skeleton, fields } = applyFieldPolicy({

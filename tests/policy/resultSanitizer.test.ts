@@ -62,6 +62,29 @@ describe("createResultSanitizer", () => {
     expect(out.attachments[1].file_name).toBe("rapport-2024.pdf");
   });
 
+  test("structured PII (CPR) in a filename is redacted even though pattern regexes need the original punctuation", async () => {
+    // On the live sidecar, "cpr-010190-1234.pdf" -> DK_CPR span, but "cpr 010190 1234" (the
+    // tokenized/spaced stem) does not match the pattern recognizer at all. So the filename
+    // field must also be analyzed in its ORIGINAL (untokenized) form, not only as a stem.
+    const rs = createResultSanitizer({ newSession });
+    const payload = { attachments: [{ id: 1, file_name: "cpr-010190-1234.pdf" }] };
+    const { result } = await rs.sanitize({ content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] });
+    const out = JSON.parse((result.content[0] as any).text);
+    expect(out.attachments[0].file_name).toBe("cpr-[CPR_1].pdf");
+  });
+
+  test("known limitation: a filename with BOTH a pattern value and a glued-together name only gets the pattern redacted", async () => {
+    // The original-view catches "010190-1234" (CPR, punctuation intact) and wins over the
+    // stem-view (which would have caught "Mette Sørensen" but not the hyphenated CPR), so the
+    // glued name survives. This is a documented, deliberate limitation, never worse than not
+    // tokenizing filenames at all (main's behaviour), and pinned here so it stays explicit.
+    const rs = createResultSanitizer({ newSession });
+    const payload = { attachments: [{ id: 1, file_name: "cpr-010190-1234-MetteSørensen.pdf" }] };
+    const { result } = await rs.sanitize({ content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] });
+    const out = JSON.parse((result.content[0] as any).text);
+    expect(out.attachments[0].file_name).toBe("cpr-[CPR_1]-MetteSørensen.pdf");
+  });
+
   test("non-JSON text is sanitized whole", async () => {
     const rs = createResultSanitizer({ newSession });
     const { result } = await rs.sanitize({ content: [{ type: "text", text: "Error for Mette Sørensen: not found" }], isError: true, validationDetails: { raw: "Mette Sørensen" } });

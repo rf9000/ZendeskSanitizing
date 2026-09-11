@@ -310,7 +310,7 @@ default to **sanitize** (fail safe); unknown non-string fields are kept.
 | `**.comments[*].body`, `**.comments[*].plain_body` | sanitize |
 | `**.comments[*].html_body` | drop (Claude does not need it; avoids sanitizing HTML) |
 | `**.custom_fields[*].value`, `**.named_custom_fields.*` (strings) | sanitize |
-| `**.attachments[*].file_name`, `**.thumbnails[*].file_name` | sanitize (filename-aware: the extension is set aside and the stem is tokenized on separators and camelCase boundaries — e.g. `faktura_MetteSørensen.pdf` → detection text `faktura Mette Sørensen` — before either detector sees it, so an embedded name is no longer glued to its neighbours; the filename is rebuilt from the sanitized tokens only if something was actually redacted, otherwise the original is returned unchanged) |
+| `**.attachments[*].file_name`, `**.thumbnails[*].file_name` (parent segment must be `attachments`/`thumbnails`, not any `file_name`) | sanitize (filename-aware, two independent detection views sharing one placeholder table: the ORIGINAL text unchanged — so pattern recognizers needing intact punctuation, e.g. CPR/phone/IBAN/card, still fire — and a tokenized STEM with the extension set aside, split on separators, camelCase, and digit/letter boundaries, e.g. `faktura_MetteSørensen.pdf` → `faktura Mette Sørensen`. Refill prefers the original-view result if it redacted anything, else the rejoined stem-view result, else the untouched original; a filename with both a pattern value and a glued name only gets the pattern redacted) |
 | `**.attachments[*].content_url`, `**.thumbnails[*].content_url`, `**.mapped_content_url` | drop |
 | `**.tags[*]` | sanitize (tags sometimes contain customer names) |
 | `**.satisfaction_rating.comment` | sanitize |

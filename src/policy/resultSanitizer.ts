@@ -54,7 +54,12 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
             filenames ??= new Map();
             const { stem, ext } = splitFilename(f.text);
             filenames.set(f.path, { ext, original: f.text });
-            chunks.push({ id: `${index}:${f.path}`, text: toDetectionText(stem) });
+            // Two views, analyzed independently: the ORIGINAL text (so pattern recognizers
+            // that need intact punctuation — CPR, phone, IBAN, card — still fire, exactly as
+            // on main) and the tokenized STEM (so a glued-together name gets word-boundary
+            // spacing). Refill prefers the original-view result when it redacted anything.
+            chunks.push({ id: `${index}:${f.path}`, text: f.text });
+            chunks.push({ id: `${index}:${f.path}#stem`, text: toDetectionText(stem) });
           } else {
             chunks.push({ id: `${index}:${f.path}`, text: f.text });
           }
@@ -74,9 +79,25 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
         texts.delete(PREFIX_KEY);
         if (p.filenames) {
           for (const [path, meta] of p.filenames) {
-            const sanitizedDetection = texts.get(path)!;
-            const redacted = [...sanitizedDetection.matchAll(PLACEHOLDER_RE)].length > 0;
-            texts.set(path, redacted ? rejoinFilename(sanitizedDetection, meta.ext) : meta.original);
+            const sanitizedOriginal = texts.get(path)!;
+            const stemKey = `${path}#stem`;
+            const sanitizedStem = texts.get(stemKey)!;
+            texts.delete(stemKey);
+            // Preference order: (a) the original-view result, verbatim, if it redacted
+            // anything — this preserves structure/separators and catches pattern-based PII
+            // (CPR, phone, IBAN, card) that needs the original punctuation intact; (b) else the
+            // stem-view result, rejoined, if IT redacted something (catches a glued-together
+            // name the original view couldn't see word boundaries in); (c) else the original
+            // filename, byte-for-byte. Known limitation: a filename with both a pattern value
+            // and a glued name only gets the pattern redacted (rule (a) wins outright) — see
+            // resultSanitizer.test.ts for a pinned example; never worse than not tokenizing.
+            if ([...sanitizedOriginal.matchAll(PLACEHOLDER_RE)].length > 0) {
+              texts.set(path, sanitizedOriginal);
+            } else if ([...sanitizedStem.matchAll(PLACEHOLDER_RE)].length > 0) {
+              texts.set(path, rejoinFilename(sanitizedStem, meta.ext));
+            } else {
+              texts.set(path, meta.original);
+            }
           }
         }
         return { type: "text", text: encodeText(prefix, fillFields(p.skeleton, texts)) };

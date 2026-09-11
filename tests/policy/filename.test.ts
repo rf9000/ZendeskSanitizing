@@ -17,6 +17,9 @@ describe("splitFilename", () => {
   test("trailing dot is not treated as an extension separator", () => {
     expect(splitFilename("foo.")).toEqual({ stem: "foo.", ext: "" });
   });
+  test("extension boundary is constrained to a short alnum token: a space-containing tail is not an extension", () => {
+    expect(splitFilename("notat.Mette Sørensen")).toEqual({ stem: "notat.Mette Sørensen", ext: "" });
+  });
 });
 
 describe("toDetectionText", () => {
@@ -33,6 +36,9 @@ describe("toDetectionText", () => {
     expect(toDetectionText("___")).toBe("");
     expect(toDetectionText("---")).toBe("");
     expect(toDetectionText("")).toBe("");
+  });
+  test("digit/letter boundaries split too, alongside camelCase", () => {
+    expect(toDetectionText("Faktura2024MetteSørensen")).toBe("Faktura 2024 Mette Sørensen");
   });
 });
 

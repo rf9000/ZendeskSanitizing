@@ -24,6 +24,15 @@ function stripIndices(path: string[]): string[] {
   return path.filter((s) => !/^\d+$/.test(s));
 }
 
+/** Matches the spec's `**.attachments[*].file_name` / `**.thumbnails[*].file_name` globs: the
+ *  last non-numeric segment before `file_name` must be `attachments` or `thumbnails`, not just
+ *  any field literally named `file_name` (e.g. a stray `named_custom_fields.file_name`). */
+function isAttachmentOrThumbnailParent(path: string[]): boolean {
+  const stripped = stripIndices(path);
+  const parent = stripped[stripped.length - 2];
+  return parent === "attachments" || parent === "thumbnails";
+}
+
 function suffixMatches(path: string[], rule: string): boolean {
   const r = rule.split(".");
   if (r.length > path.length) return false;
@@ -74,7 +83,7 @@ export function applyFieldPolicy(payload: unknown): { skeleton: unknown; fields:
     if (rule === "sanitize") {
       const id = path.join(".");
       const field: CollectedField = { path: id, text: value as string };
-      if (path[path.length - 1] === "file_name") field.kind = "filename";
+      if (path[path.length - 1] === "file_name" && isAttachmentOrThumbnailParent(path)) field.kind = "filename";
       fields.push(field);
       return { [MARKER]: id };
     }

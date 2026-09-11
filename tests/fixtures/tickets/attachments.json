@@ -2,11 +2,12 @@
   "lang": "en",
   "attachments": [
     { "id": 88301, "file_name": "faktura_MetteSørensen.pdf", "content_url": "https://acme.zendesk.com/attachments/token/abc123def/?name=faktura_MetteS%C3%B8rensen.pdf", "content_type": "application/pdf", "size": 154823, "comment_id": 1 },
-    { "id": 88302, "file_name": "network-diagram.png", "content_url": "https://acme.zendesk.com/attachments/token/xyz789ghi/?name=network-diagram.png", "content_type": "image/png", "size": 44210, "comment_id": 1 }
+    { "id": 88302, "file_name": "network-diagram.png", "content_url": "https://acme.zendesk.com/attachments/token/xyz789ghi/?name=network-diagram.png", "content_type": "image/png", "size": 44210, "comment_id": 1 },
+    { "id": 88303, "file_name": "cpr-010190-1234.pdf", "content_url": "https://acme.zendesk.com/attachments/token/qrs456tuv/?name=cpr-010190-1234.pdf", "content_type": "application/pdf", "size": 98213, "comment_id": 1 }
   ],
   "expected": {
-    "absent": ["token/", "MetteSørensen", "Mette Sørensen"],
-    "present": ["application/pdf", "image/png", "faktura", "network-diagram.png", "88301", "88302"]
+    "absent": ["token/", "MetteSørensen", "Mette Sørensen", "010190-1234"],
+    "present": ["application/pdf", "image/png", "faktura", "network-diagram.png", "88301", "88302", "88303", "cpr-"]
   },
   "expectedPass2": {
     "absent": [],
