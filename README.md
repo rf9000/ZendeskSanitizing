@@ -146,5 +146,3 @@ formats raw PII into a log message.
 - **Bare-phone/CPR coverage relies on pattern recognizers.** Phone and CPR detection (including
   the bare 10-digit CPR case) comes from the ad-hoc regex recognizers in `config/recognizers/`,
   gated by `isValidCpr`'s date check for CPR — not from a semantic understanding of the text.
-- **Child restart.** If the upstream Zendesk MCP child exits, every call returns
-  `UPSTREAM_UNAVAILABLE` until the proxy is restarted (automatic restart is Plan 2).

@@ -42,7 +42,11 @@ export function buildSpawnSpec(opts: SpawnOptions): { command: string; args: str
   };
 }
 
-export async function spawnUpstream(opts: SpawnOptions): Promise<UpstreamClient> {
+export interface SpawnedUpstream extends UpstreamClient {
+  onUnexpectedClose(cb: () => void): void;
+}
+
+export async function spawnUpstream(opts: SpawnOptions): Promise<SpawnedUpstream> {
   const spec = buildSpawnSpec(opts);
   const transport = new StdioClientTransport({ ...spec, stderr: "pipe" });
   const client = new Client({ name: "zendesk-sanitizing-proxy", version: "0.0.1" });
@@ -60,6 +64,12 @@ export async function spawnUpstream(opts: SpawnOptions): Promise<UpstreamClient>
     buffer = "";
   });
 
+  let requestedClose = false;
+  const closeCbs: Array<() => void> = [];
+  client.onclose = () => {
+    if (!requestedClose) for (const cb of closeCbs) cb();
+  };
+
   return {
     async listTools() {
       const res = await client.listTools();
@@ -69,7 +79,11 @@ export async function spawnUpstream(opts: SpawnOptions): Promise<UpstreamClient>
       return (await client.callTool({ name, arguments: args })) as ToolResult;
     },
     async close() {
+      requestedClose = true;
       await client.close();
+    },
+    onUnexpectedClose(cb) {
+      closeCbs.push(cb);
     },
   };
 }

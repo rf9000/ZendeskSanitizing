@@ -5,6 +5,7 @@ import { loadConfig } from "../config.ts";
 import { createLogger } from "../logging.ts";
 import { createProxyServer } from "./proxy.ts";
 import { spawnUpstream } from "../upstream/child.ts";
+import { createRestartingUpstream } from "../upstream/restart.ts";
 import { buildSanitizer } from "./wiring.ts";
 
 const config = loadConfig();
@@ -21,7 +22,11 @@ try {
   process.exit(2);
 }
 
-const upstream = await spawnUpstream({ command: config.upstreamCommand, zendesk: config.zendesk, onStderrLine: (l) => logger.debug(l) });
+const upstream = await createRestartingUpstream({
+  factory: () => spawnUpstream({ command: config.upstreamCommand, zendesk: config.zendesk, onStderrLine: (l) => logger.debug(l) }),
+  backoffMs: 2000,
+  logger,
+});
 const server = createProxyServer({ upstream, sanitizer, logger });
 await server.connect(new StdioServerTransport());
 logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (stdio, pass2=${config.pass2 === "off" ? "off" : config.pass2Detector})`);
