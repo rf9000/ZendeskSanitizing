@@ -187,8 +187,17 @@ POST /detect  { "text": "...", "labels": ["person","organization","street addres
 ```
 
 Label set and threshold live in `config/gliner.json` (CODEOWNERS). The label→`EntityType` map
-is in `detectors/gliner.ts`. Health endpoint `/healthz` returns the model id + revision so the
+is in the same file. Health endpoint `/healthz` returns the model id + revision so the
 proxy can refuse to start against an unexpected model.
+
+**Editing the label set is not a local change.** GLiNER is zero-shot: every label conditions
+the scores of every other label, so adding or removing one shifts confidences across the board.
+Measured on 2026-09-11, removing the organization label dropped person-name confidence from
+0.617 to 0.167 on `"Ring til Lars Nielsen om sagen."` and pushed `mette_soerensen` from
+`person name` onto `username or account handle`. Consequently a label that should no longer be
+redacted is kept in `labels` and removed only from `labelMap` — the span still comes back, finds
+no mapping, and is dropped client-side. Any change here requires re-running
+`bun run test:e2e:pass2` and re-measuring the probe strings recorded in the D4 amendment.
 
 ## 5. Tool policy
 
