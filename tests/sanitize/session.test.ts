@@ -196,4 +196,18 @@ describe("SanitizeSession", () => {
     expect((err as SanitizerError).code).toBe("SANITIZER_UNAVAILABLE");
     expect(Date.now() - started).toBeLessThan(2000);
   });
+
+  test("an allowlisted term inside a longer detected span survives sanitization", async () => {
+    const text = "the Business Central user group reported it";
+    const deps = base({
+      allowlist: Allowlist.fromText("Business Central"),
+      pass1: fakePass1((c) => spansByLiteral(c.text, [["Business Central user group", "ORG"]], "presidio")),
+    });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text }]);
+    expect(out.texts.get("c1")).toContain("Business Central");
+    // (the brief's "no-op guard" line asserted `.not.toContain("".slice(0,0))`, i.e.
+    // `.not.toContain("")`, which is false for every string — removed as a no-op that isn't one;
+    // the two hard requirements are the assertions below.)
+    expect(out.texts.get("c1")).toBe("the Business Central[ORG_1] reported it");
+  });
 });

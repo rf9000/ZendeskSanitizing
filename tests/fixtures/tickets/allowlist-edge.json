@@ -4,7 +4,7 @@
     "url": "https://acme.zendesk.com/api/v2/tickets/8401.json",
     "subject": "Partner ecosystem follow-up",
     "raw_subject": "Partner ecosystem follow-up",
-    "description": "We met the Business Central user group at Continia A/S; the working group reported that Fabrikam Ltd and the Contoso ApS holding company are affected. Please ag ree to the schedule.",
+    "description": "We met the Business Central user group at Continia A/S; the working group reported that Fabrikam Ltd and the Contoso ApS holding company are affected. Please ag ree to the schedule. Someone from the group via Continia A/S was informed.",
     "status": "open",
     "priority": "normal",
     "requester_id": 930001,
@@ -19,9 +19,9 @@
   "comments": [
     {
       "id": 1, "author_id": 930001, "public": true,
-      "body": "We met the Business Central user group at Continia A/S; the working group reported that Fabrikam Ltd and the Contoso ApS holding company are affected. Please ag ree to the schedule.",
+      "body": "We met the Business Central user group at Continia A/S; the working group reported that Fabrikam Ltd and the Contoso ApS holding company are affected. Please ag ree to the schedule. Someone from the group via Continia A/S was informed.",
       "html_body": "<p>We met the Business Central user group at Continia A/S...</p>",
-      "plain_body": "We met the Business Central user group at Continia A/S; the working group reported that Fabrikam Ltd and the Contoso ApS holding company are affected. Please ag ree to the schedule.",
+      "plain_body": "We met the Business Central user group at Continia A/S; the working group reported that Fabrikam Ltd and the Contoso ApS holding company are affected. Please ag ree to the schedule. Someone from the group via Continia A/S was informed.",
       "attachments": [],
       "created_at": "2026-03-01T09:00:00Z"
     }

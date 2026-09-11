@@ -2,7 +2,7 @@ import type { Allowlist } from "./allowlist.ts";
 import { splitText } from "./chunking.ts";
 import { detectLang as defaultDetectLang } from "./language.ts";
 import { PlaceholderTable } from "./placeholders.ts";
-import { applySpans } from "./replace.ts";
+import { applySpans, splitSpansAroundRanges } from "./replace.ts";
 import { SanitizerError, emptyCounts, type Chunk, type Counts, type Lang, type Pass1Client, type Span, type SpanDetector } from "./types.ts";
 
 export interface SessionDeps {
@@ -142,7 +142,9 @@ export class SanitizeSession {
   }
 
   private apply(text: string, spans: Span[]) {
-    const result = applySpans(text, this.deps.allowlist.filter(text, spans), this.table);
+    const filtered = this.deps.allowlist.filter(text, spans);
+    const protectedRanges = this.deps.allowlist.findOccurrences(text);
+    const result = applySpans(text, splitSpansAroundRanges(filtered, protectedRanges), this.table);
     for (const sp of result.applied) this.counts[sp.type]++;
     return result;
   }

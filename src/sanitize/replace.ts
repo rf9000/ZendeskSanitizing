@@ -23,6 +23,31 @@ function placeholderRanges(text: string): Array<[number, number]> {
   return ranges;
 }
 
+/**
+ * Splits each span around any overlapping `ranges` (e.g. allowlisted-term occurrences), so the
+ * protected text inside those ranges is never swallowed by a longer detected span. Remainders
+ * shorter than `minLen` are dropped; a span untouched by any range passes through unchanged.
+ */
+export function splitSpansAroundRanges(spans: Span[], ranges: Array<[number, number]>, minLen = 2): Span[] {
+  if (ranges.length === 0) return spans;
+  const out: Span[] = [];
+  for (const sp of spans) {
+    let segments: Array<[number, number]> = [[sp.start, sp.end]];
+    for (const [a, b] of ranges) {
+      const next: Array<[number, number]> = [];
+      for (const [s0, s1] of segments) {
+        if (b <= s0 || s1 <= a) { next.push([s0, s1]); continue; }
+        if (s0 < a) next.push([s0, a]);
+        if (b < s1) next.push([b, s1]);
+      }
+      segments = next;
+    }
+    if (segments.length === 1 && segments[0]![0] === sp.start && segments[0]![1] === sp.end) { out.push(sp); continue; }
+    for (const [s0, s1] of segments) if (s1 - s0 >= minLen) out.push({ ...sp, start: s0, end: s1 });
+  }
+  return out;
+}
+
 export function applySpans(text: string, spans: Span[], table: PlaceholderTable): { text: string; applied: Span[] } {
   const protectedRanges = placeholderRanges(text);
   const valid = spans.filter(

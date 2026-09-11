@@ -35,4 +35,24 @@ describe("Allowlist", () => {
     expect(repo.isAllowed("Business Central")).toBe(true);
     expect(repo.isAllowed("Zendesk")).toBe(true);
   });
+
+  test("tightened subset rule: short/numeric single words no longer allowed", () => {
+    const numeric = Allowlist.fromText("Dynamics 365\nContinia Document Capture\nBusiness Central");
+    expect(numeric.isAllowed("Capture")).toBe(true); // single word, ≥4 alpha chars
+    expect(numeric.isAllowed("365")).toBe(false); // numeric — was allowed via "Dynamics 365"-style terms
+    expect(numeric.isAllowed("Business Central")).toBe(true); // ≥2 words
+  });
+
+  test("findOccurrences locates allowlisted terms case-insensitively with flexible whitespace", () => {
+    const text = "We use BUSINESS  central and continia daily; Contoso does not.";
+    const occ = Allowlist.fromText("Business Central\nContinia").findOccurrences(text);
+    expect(occ).toEqual([[7, 24], [29, 37]]);
+    expect(text.slice(7, 24)).toBe("BUSINESS  central");
+    expect(text.slice(29, 37)).toBe("continia");
+  });
+
+  test("findOccurrences matches whole words only", () => {
+    const occ = Allowlist.fromText("Continia").findOccurrences("Continias product");
+    expect(occ).toEqual([]);
+  });
 });

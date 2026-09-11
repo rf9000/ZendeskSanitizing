@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { applySpans, resolveOverlaps } from "@/sanitize/replace.ts";
+import { applySpans, resolveOverlaps, splitSpansAroundRanges } from "@/sanitize/replace.ts";
 import { PlaceholderTable } from "@/sanitize/placeholders.ts";
 import type { Span } from "@/sanitize/types.ts";
 
@@ -50,5 +50,21 @@ describe("applySpans", () => {
     const table = new PlaceholderTable();
     const out = applySpans(text, [s(0, 5), s(9, 12)], table);
     expect(out.text).toBe("[PERSON_1] 😀 [PERSON_2]");
+  });
+});
+
+describe("splitSpansAroundRanges", () => {
+  test("splits a span around a protected range, dropping short remainders", () => {
+    // text: "group via Continia A/S" — span [0,22), protected [10,22)
+    const spans = [s(0, 22, "ORG")];
+    const out = splitSpansAroundRanges(spans, [[10, 22]]);
+    expect(out).toEqual([s(0, 10, "ORG")]); // "group via " survives as its own span
+  });
+  test("a span inside a protected range disappears; an untouched span passes through", () => {
+    expect(splitSpansAroundRanges([s(2, 6)], [[0, 10]])).toEqual([]);
+    expect(splitSpansAroundRanges([s(20, 30)], [[0, 10]])).toEqual([s(20, 30)]);
+  });
+  test("a range in the middle splits a span in two", () => {
+    expect(splitSpansAroundRanges([s(0, 30)], [[10, 20]])).toEqual([s(0, 10), s(20, 30)]);
   });
 });

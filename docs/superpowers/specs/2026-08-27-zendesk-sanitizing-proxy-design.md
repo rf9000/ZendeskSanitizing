@@ -238,7 +238,9 @@ allowlisted multi-word term ("Document Capture" ⊂ "Continia Document Capture")
 regardless of type or source. Initial contents: Continia, Continia Software, Document Capture,
 Expense Management, Payment Management, Business Central, Dynamics 365, Dynamics NAV,
 Microsoft, Azure, Zendesk, OneDrive, SharePoint, Outlook. Owned by the GDPR owner via
-CODEOWNERS.
+CODEOWNERS. A word-subset match additionally requires the span to have at least two words, or
+to be a single word of at least four alphabetic characters; and a detected span that overlaps
+an allowlisted occurrence is split around it, so the allowlisted text always survives.
 
 ### 6.3 Unification (D6)
 
