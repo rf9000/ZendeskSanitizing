@@ -2,7 +2,8 @@
 services:
   presidio-analyzer:
     build:
-      context: ../sidecars/presidio
+      context: ..
+      dockerfile: sidecars/presidio/Dockerfile
       args:
         PRESIDIO_ANALYZER_DIGEST: ${PRESIDIO_ANALYZER_DIGEST}
         SPACY_MODEL_VERSION: ${SPACY_MODEL_VERSION}

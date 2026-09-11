@@ -288,7 +288,7 @@ Per chunk, a small n-gram detector restricted to `{da, en, de}`; texts under 20 
 with low confidence default to `en` for NER but still run all pattern recognizers (which are
 registered for all three languages). Presidio is called with `language: <lang>`.
 
-### 6.6 Presidio configuration (`config/presidio-analyzer.yml`)
+### 6.6 Presidio configuration (`config/presidio/nlp.yml`, `recognizers.yml`, `analyzer.yml`)
 
 - `nlp_engine_name: spacy`, models: `da_core_news_lg`, `en_core_web_lg`, `de_core_news_lg`,
   versions pinned in the analyzer Dockerfile layer (models are downloaded at image build, not
@@ -466,11 +466,13 @@ Test-driven throughout (per `CLAUDE.md`). `tests/` mirrors `src/`.
 ZendeskSanitizing/
 ├── src/                     (see §4)
 ├── sidecars/gliner/         Dockerfile, app.py, requirements.txt (pinned)
-├── sidecars/presidio/       Dockerfile (analyzer + 3 spaCy models), analyzer.yml
+├── sidecars/presidio/       Dockerfile (analyzer + 3 spaCy models); build context is repo root
 ├── config/
+│   ├── README.md            index of every tuning knob
 │   ├── allowlist.txt
 │   ├── recognizers/cpr.json
 │   ├── gliner.json          labels, threshold, label→EntityType map
+│   ├── presidio/            nlp.yml, recognizers.yml, analyzer.yml — copied into the analyzer image
 │   └── prompt.md            Ollama alternative detector prompt
 ├── deploy/
 │   ├── docker-compose.yml   proxy + sidecars, digest-pinned

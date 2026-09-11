@@ -26,10 +26,11 @@ fallback — an error beats a leak, always.
    ```sh
    docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile laptop up -d --build
    ```
-   Config under `sidecars/presidio/` and `sidecars/gliner/` is baked into their images —
+   Config under `config/presidio/` and `sidecars/gliner/` is baked into their images —
    re-run this command after editing either. `config/recognizers/*.json`, `config/allowlist.txt`,
    and `config/gliner.json` are read by the proxy process at runtime, so changes there need no
-   rebuild.
+   rebuild. See `config/README.md` for an index of every tuning knob and what to run after
+   changing it.
 3. Smoke test the proxy on its own (with `ZSAN_PASS2=required` from step 1, both sidecars up):
    ```sh
    bun run start
@@ -206,6 +207,10 @@ Blocked categories and why:
      Actions → Variables).
 
 ## Configuration
+
+For everything that controls *what gets redacted* (allowlist, GLiNER labels/threshold, Presidio
+recognizers and engine config), see the index in `config/README.md`. The table below is the
+proxy's own runtime environment configuration.
 
 All variables are `ZSAN_*`, validated with Zod at startup (see `.env.example`):
 
