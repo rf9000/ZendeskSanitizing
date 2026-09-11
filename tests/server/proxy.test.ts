@@ -137,4 +137,12 @@ describe("proxy", () => {
     await client.callTool({ name: "add_ticket_comment", arguments: { id: 1, body: "resolved via KB-42", author_id: 7 } });
     expect(up.calls).toEqual([["add_ticket_comment", { id: 1, body: "resolved via KB-42", type: "internal" }]]);
   });
+
+  test("non-string body is rejected with the invalid-body sentence and never reaches upstream", async () => {
+    const up = fakeUpstream();
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "add_ticket_comment", arguments: { id: 1, body: { text: "hi" } } }).catch((e) => e);
+    expect(String(err.message)).toContain("OUTGOING_REJECTED: the comment body must be a plain string");
+    expect(up.calls).toEqual([]);
+  });
 });

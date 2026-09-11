@@ -49,6 +49,30 @@ describe("outgoing policy", () => {
     expect(() => rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: "ok", type: "public" }))
       .toThrow(OutgoingRejectedError);
   });
+  test("rejects case-variant public types, but coerces non-string type silently", () => {
+    for (const t of ["public", "Public", "PUBLIC", "Internal-ish"]) {
+      expect(() => rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: "ok", type: t }))
+        .toThrow(OutgoingRejectedError);
+    }
+    expect(rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: "ok", type: "Internal" }).type).toBe("internal");
+    expect(rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: "ok", type: 1 as unknown as string }).type).toBe("internal");
+    expect(rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: "ok", type: {} as unknown as string }).type).toBe("internal");
+  });
+  test("scans every string-valued argument for placeholders, not just body", () => {
+    expect(() =>
+      rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: "clean", html_body: "ping [PERSON_1]" }),
+    ).toThrow(OutgoingRejectedError);
+  });
+  test("fails closed on a non-string body", () => {
+    let caught: unknown;
+    try {
+      rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: { text: "[PERSON_1]" } as unknown as string });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(OutgoingRejectedError);
+    expect((caught as InstanceType<typeof OutgoingRejectedError>).reason).toBe("invalid_body");
+  });
   test("rejects placeholder tokens in the body — including repeated calls (shared /g regex)", () => {
     for (let i = 0; i < 3; i++) {
       expect(() => rewriteOutgoingArguments("add_ticket_comment", { id: 1, body: `ping [PERSON_${i + 1}] about it` }))

@@ -34,9 +34,9 @@ export function filterToolList<T extends { name: string }>(tools: T[]): T[] {
 }
 
 export class OutgoingRejectedError extends Error {
-  readonly reason: "public_comment" | "placeholder_in_body";
+  readonly reason: "public_comment" | "placeholder_in_body" | "invalid_body";
 
-  constructor(reason: "public_comment" | "placeholder_in_body") {
+  constructor(reason: "public_comment" | "placeholder_in_body" | "invalid_body") {
     super(reason);
     this.name = "OutgoingRejectedError";
     this.reason = reason;
@@ -50,16 +50,29 @@ function containsPlaceholder(text: string): boolean {
 /**
  * Inspects/rewrites outgoing tool-call arguments before they reach upstream.
  * add_ticket_comment is forced to an internal note and stripped of author_id;
- * a public type or a placeholder-bearing body is rejected outright. Every
- * other tool's arguments pass through unchanged (same reference).
+ * any string `type` other than (case-insensitively) "internal" is rejected as
+ * a public comment; a present-but-non-string `body` is rejected outright
+ * (fail closed rather than coercing it); and every string-valued argument —
+ * not just `body` — is scanned for a leftover sanitization placeholder like
+ * [PERSON_1]. Every other tool's arguments pass through unchanged (same
+ * reference).
  */
 export function rewriteOutgoingArguments(name: string, args: Record<string, unknown>): Record<string, unknown> {
   if (name !== "add_ticket_comment") return args;
 
-  if (args.type === "public") throw new OutgoingRejectedError("public_comment");
+  if (typeof args.type === "string" && args.type.toLowerCase() !== "internal") {
+    throw new OutgoingRejectedError("public_comment");
+  }
 
-  const body = String(args.body ?? "");
-  if (containsPlaceholder(body)) throw new OutgoingRejectedError("placeholder_in_body");
+  if ("body" in args && typeof args.body !== "string") {
+    throw new OutgoingRejectedError("invalid_body");
+  }
+
+  for (const v of Object.values(args)) {
+    if (typeof v === "string" && containsPlaceholder(v)) {
+      throw new OutgoingRejectedError("placeholder_in_body");
+    }
+  }
 
   const { author_id: _authorId, ...rest } = args;
   return { ...rest, type: "internal" };

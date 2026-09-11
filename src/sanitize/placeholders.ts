@@ -1,5 +1,6 @@
 import { ENTITY_TYPES, type EntityType } from "./types.ts";
 
+// Shared /g instance: use matchAll/match only — never .test/.exec (stateful lastIndex).
 export const PLACEHOLDER_RE = new RegExp(`\\[(${ENTITY_TYPES.join("|")})_\\d+\\]`, "g");
 
 export function normalizeValue(value: string): string {

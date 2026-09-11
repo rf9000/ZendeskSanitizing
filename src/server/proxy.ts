@@ -52,7 +52,9 @@ export function createProxyServer(deps: ProxyDeps): Server {
         const sentence =
           e.reason === "public_comment"
             ? "the sanitizing proxy only posts internal notes — omit type or pass 'internal'"
-            : "the comment body contains sanitization placeholders like [PERSON_1]; replace them with real text before posting";
+            : e.reason === "invalid_body"
+              ? "the comment body must be a plain string"
+              : "the comment body contains sanitization placeholders like [PERSON_1]; replace them with real text before posting";
         throw new McpError(ErrorCode.InvalidParams, `OUTGOING_REJECTED: ${sentence}`);
       }
       throw e;
