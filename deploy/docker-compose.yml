@@ -76,8 +76,14 @@ services:
     image: caddy:2-alpine
     profiles: [vm]
     restart: unless-stopped
+    environment:
+      ZSAN_DOMAIN: "${ZSAN_DOMAIN:-localhost}"
     ports:
       - "443:443"
+      # Port 80 is required for the ACME HTTP-01 challenge when ZSAN_DOMAIN is a real,
+      # publicly-resolvable domain; Caddy only uses it for that challenge and to redirect
+      # plain HTTP to HTTPS — it never serves the proxy over 80.
+      - "80:80"
     volumes:
       - ../deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

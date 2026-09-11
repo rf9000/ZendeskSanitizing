@@ -10,15 +10,18 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 sudo usermod -aG docker "$USER"
 
-# Firewall: SSH + HTTPS only
-sudo ufw allow OpenSSH && sudo ufw allow 443/tcp && sudo ufw --force enable
+# Firewall: SSH + HTTP (ACME HTTP-01 challenge only, no app traffic) + HTTPS
+sudo ufw allow OpenSSH && sudo ufw allow 80/tcp && sudo ufw allow 443/tcp && sudo ufw --force enable
 
 sudo mkdir -p /opt/zsan && sudo chown "$USER" /opt/zsan
 cat <<'EOF'
-Next steps (manual):
-  1. git clone the repo, e.g. into /opt/zsan/app
-  2. Create /opt/zsan/.env with ZSAN_ZENDESK_*, ZSAN_CLIENT_TOKENS (name:token per developer), ZSAN_PASS2=required
-  3. export ZSAN_DOMAIN=<your-dns-name>   (or leave unset for self-signed localhost testing)
-  4. cd /opt/zsan/app && docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile vm up -d --build
-  5. Verify: curl -k https://localhost/healthz
+Docker group membership was just added for your user — log out and back in (or run
+`newgrp docker`) before using docker; otherwise `docker ...` commands below will fail with a
+permission error.
+
+Next steps (manual, from /opt/zsan/app — the repo you already cloned before running this script):
+  1. Create /opt/zsan/.env with ZSAN_ZENDESK_*, ZSAN_CLIENT_TOKENS (name:token per developer), ZSAN_PASS2=required
+  2. export ZSAN_DOMAIN=<your-dns-name>   (or leave unset for self-signed localhost testing)
+  3. docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile vm up -d --build
+  4. Verify: curl -k https://localhost/healthz
 EOF

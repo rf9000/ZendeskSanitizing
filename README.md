@@ -12,8 +12,6 @@ fallback — an error beats a leak, always.
 
 ## Laptop mode
 
-This is the only mode this plan implements. VM mode (below) ships in Plan 2.
-
 **Prerequisites:** Bun ≥ 1.3, Docker Desktop.
 
 1. Copy the env template and fill in your Zendesk credentials:
@@ -72,23 +70,33 @@ tool allowlist and two-pass sanitization as laptop mode.
 
 **Prerequisites:** an Ubuntu 24.04 VM with a sudo-capable user and outbound internet access.
 A public DNS name pointed at the VM is optional — without one, Caddy falls back to a
-self-signed `localhost` certificate (fine for a lab VM, not for real developer use).
+self-signed `localhost` certificate (fine for a lab VM, not for real developer use). The first
+build compiles the Presidio and GLiNER sidecar images too (not just the proxy), so budget
+≥8 GB RAM and roughly 10 minutes plus model-download time for `docker compose ... up --build`
+the first time.
 
-**Setup (five steps):**
+**Setup:**
 
-1. Run `deploy/vm-setup.sh` on the VM (review it first — it installs Docker Engine, opens
-   only SSH + 443 in `ufw`, and creates `/opt/zsan`).
-2. `git clone` this repo onto the VM, e.g. into `/opt/zsan/app`.
+1. Clone this repo onto the VM, e.g. into `/opt/zsan/app`. (Ubuntu images on Azure ship `git`
+   preinstalled; if yours doesn't, `sudo apt-get install -y git` first.)
+2. From `/opt/zsan/app`, run `bash deploy/vm-setup.sh` (review it first — it installs Docker
+   Engine, opens SSH + 80 + 443 in `ufw`, and creates `/opt/zsan`). Running it via `bash
+   deploy/vm-setup.sh` means the file's executable bit doesn't matter. **After it finishes, log
+   out and back in (or run `newgrp docker`)** — group membership changes from `usermod -aG
+   docker` only take effect in a new login session, so `docker ...` commands will fail with a
+   permission error until you do.
 3. Create `/opt/zsan/.env` with `ZSAN_ZENDESK_SUBDOMAIN`/`_EMAIL`/`_API_TOKEN`,
    `ZSAN_CLIENT_TOKENS` (`name:token,name:token`, each token at least 16 characters), and
    `ZSAN_PASS2=required`. This file is read only via compose `env_file` — it is never baked
    into the proxy image.
 4. `export ZSAN_DOMAIN=<your-dns-name>` (or leave unset to use the self-signed `localhost`
-   cert), then from `/opt/zsan/app`:
+   cert) — Caddy needs this both to request the right certificate and to know which host to
+   answer for; it's passed through to the `caddy` service via compose `environment`.
+5. From `/opt/zsan/app`:
    ```sh
    docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile vm up -d --build
    ```
-5. Verify: `curl -k https://localhost/healthz` (or `https://<your-dns-name>/healthz` with a
+6. Verify: `curl -k https://localhost/healthz` (or `https://<your-dns-name>/healthz` with a
    real domain) should return `{"status":"ok"}`.
 
 **Developer-side `.mcp.json`** (registers the VM proxy over HTTP instead of spawning it
@@ -114,14 +122,25 @@ only the developer name a token resolves to, e.g. `http session opened for <name
 
 **Local smoke of the `vm` profile** (no TLS domain needed — for developing/debugging this
 compose setup, not for normal use): `deploy/docker-compose.smoke.yml` is a committed override
-that publishes the proxy's port directly to `127.0.0.1:8080`, bypassing Caddy:
+that publishes the proxy's port directly to `127.0.0.1:8080`, bypassing Caddy. Point
+`ZSAN_ENV_FILE` at a throwaway env file with dummy `ZSAN_ZENDESK_*` values, `ZSAN_PASS2=off`,
+and one `name:token` (16+ chars) — never the repo's real `.env`, and never a file committed to
+the repo:
 
 ```sh
-docker compose --env-file deploy/versions.env \
+ZSAN_ENV_FILE=/path/to/your/throwaway.env docker compose --env-file deploy/versions.env \
   -f deploy/docker-compose.yml -f deploy/docker-compose.smoke.yml --profile vm up -d --build
 curl http://127.0.0.1:8080/healthz          # → 200 {"status":"ok"}
 curl -i http://127.0.0.1:8080/mcp           # → 401 (no bearer token)
-docker compose -f deploy/docker-compose.yml --profile vm down
+docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.smoke.yml --profile vm down
+```
+
+**Warning:** `presidio-analyzer` and `gliner` carry both the `laptop` and `vm` profiles, so
+the `down --profile vm` above stops and removes them too, not just `proxy`/`caddy`. If you were
+also running the laptop profile (e.g. for `bun run test:e2e`), restart it afterwards:
+
+```sh
+docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile laptop up -d
 ```
 
 ## Tools exposed
