@@ -3,45 +3,28 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import pkg from "../../package.json";
 import { loadConfig } from "../config.ts";
 import { createLogger } from "../logging.ts";
-import { createResultSanitizer } from "../policy/resultSanitizer.ts";
-import { Allowlist } from "../sanitize/allowlist.ts";
-import { loadRecognizers } from "../sanitize/cpr.ts";
-import { PresidioClient } from "../sanitize/presidio.ts";
-import { SanitizeSession } from "../sanitize/session.ts";
 import { createProxyServer } from "./proxy.ts";
 import { spawnUpstream } from "../upstream/child.ts";
+import { buildSanitizer } from "./wiring.ts";
 
 const config = loadConfig();
 const logger = createLogger({ level: config.logLevel }); // stderr — stdout is the MCP transport
+const repoRoot = resolve(import.meta.dir, "..", "..");
 
-if (config.pass2 === "off") {
-  logger.warn("ZSAN_PASS2=off — running with Presidio only. Contextual PII (addresses, usernames, missed names) will NOT be redacted.");
-} else {
-  // Plan 2 wires the GLiNER detector here. Until then a required pass 2 cannot be satisfied.
-  logger.error("ZSAN_PASS2=required but no pass-2 detector is implemented yet (Plan 2). Set ZSAN_PASS2=off to run Presidio-only.");
+let sanitizer;
+try {
+  sanitizer = await buildSanitizer({ config, logger, repoRoot });
+} catch (e) {
+  // buildSanitizer errors here are config-derived (bad config/gliner.json, sidecar identity
+  // mismatch, unimplemented detector) — never payload text — so logging e.message is safe.
+  logger.error(`startup failed: ${e instanceof Error ? e.message : typeof e}`);
   process.exit(2);
 }
-
-const repoRoot = resolve(import.meta.dir, "..", "..");
-const allowlist = await Allowlist.fromFile(resolve(repoRoot, config.allowlistPath));
-const recognizers = await loadRecognizers(resolve(repoRoot, config.recognizersPath));
-const presidio = new PresidioClient({ baseUrl: config.presidioUrl, recognizers });
-
-const sanitizer = createResultSanitizer({
-  newSession: () => new SanitizeSession({
-    pass1: presidio,
-    pass2: null,
-    allowlist,
-    timeouts: { pass1Ms: config.timeouts.presidioMs, pass2Ms: config.timeouts.pass2Ms },
-    chunkMaxChars: config.chunkMaxChars,
-    concurrency: config.concurrency,
-  }),
-});
 
 const upstream = await spawnUpstream({ command: config.upstreamCommand, zendesk: config.zendesk, onStderrLine: (l) => logger.debug(l) });
 const server = createProxyServer({ upstream, sanitizer, logger });
 await server.connect(new StdioServerTransport());
-logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (stdio, pass2=off)`);
+logger.info(`zendesk-sanitizing-proxy v${pkg.version} ready (stdio, pass2=${config.pass2 === "off" ? "off" : config.pass2Detector})`);
 
 let closing = false;
 const shutdown = async () => {

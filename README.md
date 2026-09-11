@@ -21,21 +21,23 @@ This is the only mode this plan implements. VM mode (below) ships in Plan 2.
    cp .env.example .env
    # edit .env: ZSAN_ZENDESK_SUBDOMAIN, ZSAN_ZENDESK_EMAIL, ZSAN_ZENDESK_API_TOKEN
    ```
-   Also set `ZSAN_PASS2=off` in `.env` for this plan — pass 2 (GLiNER/Ollama) arrives in
-   Plan 2, and the default, `required`, makes the proxy exit with code 2 at startup since no
-   pass-2 detector exists yet.
-2. Start the Presidio sidecar (analyzer only, laptop profile):
+   `.env.example` already has `ZSAN_PASS2=required` — leave it as-is; that's the two-pass,
+   GLiNER-backed mode this plan implements. Use `ZSAN_PASS2=off` only for a deliberate
+   Presidio-only run (e.g. the GLiNER sidecar is down and you accept reduced coverage).
+2. Start both sidecars (Presidio analyzer + GLiNER, laptop profile):
    ```sh
    docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --profile laptop up -d --build
    ```
-   Config under `sidecars/presidio/` is baked into the image — re-run this command after
-   editing it. `config/recognizers/*.json` and `config/allowlist.txt` are read by the proxy
-   process at runtime, so changes there need no rebuild.
-3. Smoke test the proxy on its own (with `ZSAN_PASS2=off` already set in `.env` from step 1):
+   Config under `sidecars/presidio/` and `sidecars/gliner/` is baked into their images —
+   re-run this command after editing either. `config/recognizers/*.json`, `config/allowlist.txt`,
+   and `config/gliner.json` are read by the proxy process at runtime, so changes there need no
+   rebuild.
+3. Smoke test the proxy on its own (with `ZSAN_PASS2=required` from step 1, both sidecars up):
    ```sh
    bun run start
    ```
-   You should see a loud "pass 2 disabled" warning followed by "ready" on stderr.
+   You should see a `pass2=gliner verified against …` line followed by "ready" on stderr. To
+   run Presidio-only instead, use `ZSAN_PASS2=off bun run start`.
 4. Register the proxy in Claude Code's `.mcp.json`, over stdio. Claude Code runs MCP servers
    with `cwd` set to *your project*, not this repo, so `bun run` won't find a `.env` here by
    itself — pass it explicitly with `--env-file`:
@@ -128,11 +130,8 @@ A redaction guard also scans every log line for email/CPR/IBAN-shaped substrings
 them before they're written, as a defense-in-depth backstop against a bug that accidentally
 formats raw PII into a log message.
 
-## Known limitations (Plan 1)
+## Known limitations
 
-- **No pass 2 yet.** Only Presidio (pattern/NER) runs; contextual PII that needs a second,
-  context-aware detector (addresses, usernames, names missed by NER) is not redacted until
-  Plan 2 wires in GLiNER/Ollama. `ZSAN_PASS2=off` must be set explicitly for this reason.
 - **`ORG_SUFFIX`/allowlist edge cases.** The org-suffix recognizer and the allowlist are both
   pattern/term based; unusual company-name shapes or terms not yet in `config/allowlist.txt`
   can be misclassified in either direction.

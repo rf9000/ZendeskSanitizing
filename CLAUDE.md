@@ -32,7 +32,7 @@ When reporting that something is fixed or done, include the actual test output �
 - `bun run test:contract` — needs Presidio up (`docker compose … --profile laptop up`).
 - `bun run test:e2e` — fixture regression gate; needs Presidio up.
 - `bun run typecheck` — `tsc --noEmit`.
-- `ZSAN_PASS2=off bun run start` — run the stdio proxy (laptop mode) with `.env` filled.
+- `bun run start` — runs the stdio proxy with pass 2 (needs Presidio + GLiNER containers up and `.env` filled). `ZSAN_PASS2=off bun run start` runs Presidio-only.
 
 ## Architecture
 
