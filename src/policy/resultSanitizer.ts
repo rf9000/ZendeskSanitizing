@@ -1,6 +1,8 @@
 import type { SanitizeSession } from "../sanitize/session.ts";
+import { PLACEHOLDER_RE } from "../sanitize/placeholders.ts";
 import type { Chunk, Counts } from "../sanitize/types.ts";
 import { applyFieldPolicy, fillFields } from "./fieldPolicy.ts";
+import { rejoinFilename, splitFilename, toDetectionText } from "./filename.ts";
 
 export interface TextContent { type: "text"; text: string }
 export interface ToolResult {
@@ -26,7 +28,8 @@ export function encodeText(prefix: string, json: unknown): string {
   return prefix + JSON.stringify(json, null, 2);
 }
 
-interface Pending { index: number; prefix: string; skeleton?: unknown; whole?: boolean }
+interface FilenameMeta { ext: string; original: string }
+interface Pending { index: number; prefix: string; skeleton?: unknown; whole?: boolean; filenames?: Map<string, FilenameMeta> }
 const PREFIX_KEY = "__prefix";
 
 export function createResultSanitizer(deps: ResultSanitizerDeps) {
@@ -45,10 +48,20 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
           return;
         }
         const { skeleton, fields } = applyFieldPolicy(json);
-        for (const f of fields) chunks.push({ id: `${index}:${f.path}`, text: f.text });
+        let filenames: Map<string, FilenameMeta> | undefined;
+        for (const f of fields) {
+          if (f.kind === "filename") {
+            filenames ??= new Map();
+            const { stem, ext } = splitFilename(f.text);
+            filenames.set(f.path, { ext, original: f.text });
+            chunks.push({ id: `${index}:${f.path}`, text: toDetectionText(stem) });
+          } else {
+            chunks.push({ id: `${index}:${f.path}`, text: f.text });
+          }
+        }
         // The prefix is upstream free text too (e.g. "Validation Error: requester <name> not found\n\nDetails:\n") — sanitize it.
         if (prefix) chunks.push({ id: `${index}:${PREFIX_KEY}`, text: prefix });
-        pending.push({ index, prefix, skeleton });
+        pending.push({ index, prefix, skeleton, filenames });
       });
 
       const out = await session.sanitize(chunks);
@@ -59,6 +72,13 @@ export function createResultSanitizer(deps: ResultSanitizerDeps) {
         for (const [id, t] of out.texts) if (id.startsWith(`${p.index}:`)) texts.set(id.slice(`${p.index}:`.length), t);
         const prefix = p.prefix ? texts.get(PREFIX_KEY)! : "";
         texts.delete(PREFIX_KEY);
+        if (p.filenames) {
+          for (const [path, meta] of p.filenames) {
+            const sanitizedDetection = texts.get(path)!;
+            const redacted = [...sanitizedDetection.matchAll(PLACEHOLDER_RE)].length > 0;
+            texts.set(path, redacted ? rejoinFilename(sanitizedDetection, meta.ext) : meta.original);
+          }
+        }
         return { type: "text", text: encodeText(prefix, fillFields(p.skeleton, texts)) };
       });
 

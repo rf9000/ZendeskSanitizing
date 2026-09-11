@@ -252,3 +252,13 @@ formats raw PII into a log message.
 - **Bare-phone/CPR coverage relies on pattern recognizers.** Phone and CPR detection (including
   the bare 10-digit CPR case) comes from the ad-hoc regex recognizers in `config/recognizers/`,
   gated by `isValidCpr`'s date check for CPR — not from a semantic understanding of the text.
+- **Names embedded in attachment filenames — closed.** Attachment/thumbnail filenames
+  (`file_name`) are now tokenized for detection (`src/policy/filename.ts`): the extension is
+  set aside and the stem is split on separator runs (`_`/`-`/`.`/space) and camelCase
+  boundaries before either detector sees it, so e.g. `faktura_MetteSørensen.pdf` becomes
+  detection text `faktura Mette Sørensen` and is caught by Presidio (pass 1) — see
+  `tests/fixtures/tickets/attachments.json`, `basic-da.json`. The filename is only rewritten
+  when a detector actually redacted something in it; otherwise the original is returned
+  byte-for-byte. What still isn't caught: a name fused with no separator and no case change at
+  all (e.g. an all-lowercase `mettesørensen.pdf`) — tokenization has no boundary to split on in
+  that case and the compound token survives, same as any other undelimited compound word.

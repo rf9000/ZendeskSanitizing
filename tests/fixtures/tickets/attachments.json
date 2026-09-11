@@ -5,13 +5,11 @@
     { "id": 88302, "file_name": "network-diagram.png", "content_url": "https://acme.zendesk.com/attachments/token/xyz789ghi/?name=network-diagram.png", "content_type": "image/png", "size": 44210, "comment_id": 1 }
   ],
   "expected": {
-    "absent": ["token/"],
+    "absent": ["token/", "MetteSørensen", "Mette Sørensen"],
     "present": ["application/pdf", "image/png", "faktura", "network-diagram.png", "88301", "88302"]
   },
   "expectedPass2": {
     "absent": [],
-    "reasons": {
-      "MetteSørensen": "name is embedded in the attachment filename with no surrounding spaces ('faktura_MetteSørensen.pdf'). Plan-1 NER (Presidio) needs word-boundary spacing to recognize a person name, and Plan-2 GLiNER does no better with a plain 'person name' label (score 0 — the compound token isn't recognized as a name at all). A dedicated label such as 'file name containing a person name' or 'attachment filename with a person's name inside it' DOES score the filename above generic filenames (invoice.pdf, receipt.jpg, network-diagram.png) and above tag false-positives (partner, gold_tier) at a shared threshold — but the span GLiNER returns always covers the WHOLE filename, never just the embedded name substring. Redacting it would also swallow 'faktura', which this fixture's expected.present requires stay visible, so no config-only (label/threshold) tuning closes this leak without an unacceptable regression elsewhere. Moved out of expectedPass2.absent as a recorded, measured gap rather than tuned away."
-    }
+    "reasons": {}
   }
 }

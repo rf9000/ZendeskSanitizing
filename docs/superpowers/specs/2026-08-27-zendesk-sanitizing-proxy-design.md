@@ -310,7 +310,7 @@ default to **sanitize** (fail safe); unknown non-string fields are kept.
 | `**.comments[*].body`, `**.comments[*].plain_body` | sanitize |
 | `**.comments[*].html_body` | drop (Claude does not need it; avoids sanitizing HTML) |
 | `**.custom_fields[*].value`, `**.named_custom_fields.*` (strings) | sanitize |
-| `**.attachments[*].file_name`, `**.thumbnails[*].file_name` | sanitize |
+| `**.attachments[*].file_name`, `**.thumbnails[*].file_name` | sanitize (filename-aware: the extension is set aside and the stem is tokenized on separators and camelCase boundaries — e.g. `faktura_MetteSørensen.pdf` → detection text `faktura Mette Sørensen` — before either detector sees it, so an embedded name is no longer glued to its neighbours; the filename is rebuilt from the sanitized tokens only if something was actually redacted, otherwise the original is returned unchanged) |
 | `**.attachments[*].content_url`, `**.thumbnails[*].content_url`, `**.mapped_content_url` | drop |
 | `**.tags[*]` | sanitize (tags sometimes contain customer names) |
 | `**.satisfaction_rating.comment` | sanitize |

@@ -39,15 +39,14 @@
     }
   ],
   "expected": {
-    "absent": ["Mette Sørensen", "mette@contoso.example", "010190-1234", "12 34 56 78", "Contoso", "Lars Nielsen", "10.1.2.3", "Aarhus, Denmark", "attachments/token"],
+    "absent": ["Mette Sørensen", "mette@contoso.example", "010190-1234", "12 34 56 78", "Contoso", "Lars Nielsen", "10.1.2.3", "Aarhus, Denmark", "attachments/token", "Sørensen"],
     "present": ["Vedhæftet faktura", "4711", "open", "Intern note"]
   },
   "expectedPass2": {
-    "absent": ["mette_soerensen"],
+    "absent": ["mette_soerensen", "Mette"],
     "reasons": {
-      "mette_soerensen": "the lower-case, ASCII-transliterated tag IS caught by GLiNER (config/gliner.json threshold 0.65, 'person name' label scores 0.74-0.89 on this bare tag with no surrounding context) — this is the asserted Danish pass-2 recall win. 'Mette' and 'Sørensen' as bare given/family names are NOT separately asserted here because both still leak from a different, unrelated source: the 'faktura_MetteSørensen.pdf' attachment filename (see reasons below) — so a whole-string 'absent' check on 'Mette'/'Sørensen' would still fail even though the tag itself is fully closed",
-      "Mette": "the tag-based leak this name used to be blamed on ('mette_soerensen') IS now closed by GLiNER — see the 'mette_soerensen' reason above. The residual leak comes solely from the 'faktura_MetteSørensen.pdf' attachment filename (name embedded with no surrounding spaces), which GLiNER cannot close without an unacceptable over-redaction — see 'Sørensen' below and tests/fixtures/tickets/attachments.json's matching reason. Kept here as a recorded, measured gap; not asserted in expectedPass2.absent",
-      "Sørensen": "leaks via the 'faktura_MetteSørensen.pdf' attachment filename (name embedded with no surrounding spaces). GLiNER can be made to flag the whole filename as an entity (a 'file name containing a person name'-style label scores ~0.32-0.45 on it, comfortably below scores for plain false positives like the 'partner'/'gold_tier' tags at the same threshold), but the span it returns covers the ENTIRE filename, not just the embedded name — redacting it would also remove 'faktura' from output, which tests/fixtures/tickets/attachments.json's expected.present requires stay visible. No threshold/label change closes this leak without that regression, so it is a genuine Plan-2 recall gap, not tuned away; kept here as a recorded gap, not asserted in expectedPass2.absent (see attachments.json for the same finding)"
+      "mette_soerensen": "the lower-case, ASCII-transliterated tag IS caught by GLiNER (config/gliner.json threshold 0.65, 'person name' label scores 0.74-0.89 on this bare tag with no surrounding context) — this is the asserted Danish pass-2 recall win.",
+      "Mette": "bare 'Mette' is only asserted under pass2 (not plain expected.absent) because the 'mette_soerensen' tag above is a case-insensitive substring match for 'mette' and is only closed by GLiNER, not by Presidio alone. The filename-embedded leak this name used to be blamed on ('faktura_MetteSørensen.pdf', no surrounding spaces) is now closed for both passes by filename tokenization (src/policy/filename.ts): the stem is split into 'faktura Mette Sørensen' before detection, so Presidio alone already redacts the embedded name — see 'Sørensen' in expected.absent, which is asserted under pass1 alone precisely because it is NOT also a substring of the transliterated tag."
     }
   }
 }

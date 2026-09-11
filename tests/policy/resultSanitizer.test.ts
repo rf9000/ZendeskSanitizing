@@ -40,10 +40,26 @@ describe("createResultSanitizer", () => {
     expect(out.ticket.subject).toBe("Faktura fra [PERSON_1] bliver ikke læst");
     expect(out.ticket.description).toContain("[PERSON_1] fra [ORG_1]. Mit cpr er [CPR_1].");
     expect(out.ticket.requester).toEqual({ id: 900001 });
-    expect(out.comments[0].attachments[0].file_name).toBe("faktura_MetteSørensen.pdf"); // literal not matched by this fake; real Presidio/GLiNER handle it — e2e asserts
+    // Filenames are tokenized for detection: "faktura_MetteSørensen" -> "faktura Mette Sørensen",
+    // so this fake (which matches the literal "Mette Sørensen") now catches it too.
+    expect(out.comments[0].attachments[0].file_name).toBe("faktura_[PERSON_1].pdf");
     expect(text).not.toContain("mette@contoso.example");
     expect(text).not.toContain("content_url");
     expect(counts.PERSON).toBeGreaterThanOrEqual(2);
+  });
+
+  test("filename-embedded names are redacted; clean filenames come back byte-identical", async () => {
+    const rs = createResultSanitizer({ newSession });
+    const payload = {
+      attachments: [
+        { id: 1, file_name: "faktura_MetteSørensen.pdf", content_type: "application/pdf" },
+        { id: 2, file_name: "rapport-2024.pdf", content_type: "application/pdf" },
+      ],
+    };
+    const { result } = await rs.sanitize({ content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] });
+    const out = JSON.parse((result.content[0] as any).text);
+    expect(out.attachments[0].file_name).toBe("faktura_[PERSON_1].pdf");
+    expect(out.attachments[1].file_name).toBe("rapport-2024.pdf");
   });
 
   test("non-JSON text is sanitized whole", async () => {

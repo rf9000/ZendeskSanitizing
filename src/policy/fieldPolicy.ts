@@ -1,5 +1,5 @@
 export type FieldRule = "drop" | "idOnly" | "keep" | "sanitize";
-export interface CollectedField { path: string; text: string }
+export interface CollectedField { path: string; text: string; kind?: "filename" }
 
 const MARKER = "__zsan";
 
@@ -73,7 +73,9 @@ export function applyFieldPolicy(payload: unknown): { skeleton: unknown; fields:
     }
     if (rule === "sanitize") {
       const id = path.join(".");
-      fields.push({ path: id, text: value as string });
+      const field: CollectedField = { path: id, text: value as string };
+      if (path[path.length - 1] === "file_name") field.kind = "filename";
+      fields.push(field);
       return { [MARKER]: id };
     }
     // rule === "keep"
