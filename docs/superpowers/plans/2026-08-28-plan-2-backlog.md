@@ -97,3 +97,15 @@ HTTP transport + VM deploy, CI, branch protection, CODEOWNERS, `v0.1.0`.
 - Spec drift to clean: §9 ZSAN_GLINER_MODEL_ID -> ZSAN_GLINER_MODEL_REF + transport keys; §6.4 trim-losers amendment; resolveOverlaps JSDoc passthrough note.
 - versions.env declares TORCH_CPU_VERSION/GLINER_PROTOBUF_VERSION but requirements.txt repeats them as literals — wire as build args to prevent drift.
 - Smaller: grapheme-cluster-safe hard cuts; GlinerDetector abort test; session-eviction atomicity; stack.yml/README down commands lack --env-file (warning only); HTTP entry still named stdio.ts; child.ts stderr listener removal.
+
+## Residuals from the placeholder-trim fix (2026-09-11)
+
+- `resolveOverlaps`/`splitSpansAroundRanges` drop remainders shorter than 2 characters. That
+  rule was justified when remainders came from allowlist-occurrence edges (the adjacent char is
+  non-alphanumeric); with placeholder ranges it no longer is, so a bare initial can survive:
+  `"Hilsen [PERSON_1] K"` leaves `K` raw. Non-regressive (it survived before the fix too) and
+  weakly identifying. Fix would be `minLen: 1` for the placeholder-range call in `applySpans`.
+- Raw text *between* two placeholders is now redacted wholesale when one over-capturing span
+  covers both — connector words included (`"[PERSON_1] og [PERSON_2]"` turns `og` into its own
+  placeholder). Desired direction (nothing raw is discarded) but a precision cost, and no
+  fixture exercises it, so the scorecard is not evidence either way.
