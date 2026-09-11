@@ -86,3 +86,14 @@ HTTP transport + VM deploy, CI, branch protection, CODEOWNERS, `v0.1.0`.
 - `encodeText` always re-serialises with 2-space indent (spec §3.1 says "same formatting").
 - Proxy version `0.0.1` is hard-coded in `proxy.ts`; startup log now reads it from
   `package.json` — unify.
+
+## Plan 3 carry-over (added 2026-09-11, after the v0.1.0 final review)
+
+- Placeholder-overlap trimming in applySpans: a pass-2 span straddling a pass-1 placeholder is dropped whole; trim with subtractRanges instead (top recall follow-up).
+- Entity-type scorecard axis + per-detector axis (with the Ollama bake-off detector, spec §6.8).
+- Deterministic filename-stem redaction in the field policy ([FILE_n].pdf) — closes the one measured pass-2 gap (names inside attachment filenames); NEEDS USER DECISION.
+- Deploy hardening batch: pin caddy + proxy image tags, nodejs/npm versions in the proxy image, non-root proxy user, resource limits on proxy, authenticated or unproxied /healthz, scoped-down compose down commands.
+- Restart-exhaustion on the VM: after the second upstream death the proxy stays degraded while container-healthy; consider exiting so restart: unless-stopped recycles it.
+- Spec drift to clean: §9 ZSAN_GLINER_MODEL_ID -> ZSAN_GLINER_MODEL_REF + transport keys; §6.4 trim-losers amendment; resolveOverlaps JSDoc passthrough note.
+- versions.env declares TORCH_CPU_VERSION/GLINER_PROTOBUF_VERSION but requirements.txt repeats them as literals — wire as build args to prevent drift.
+- Smaller: grapheme-cluster-safe hard cuts; GlinerDetector abort test; session-eviction atomicity; stack.yml/README down commands lack --env-file (warning only); HTTP entry still named stdio.ts; child.ts stderr listener removal.
