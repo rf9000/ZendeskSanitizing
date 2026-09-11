@@ -35,7 +35,7 @@ reuses the exact same code.
 | D1 | Upstream is `@sshadows/zendesk-mcp-server` 1.4.1 over **stdio**, spawned by the proxy | Verified from package source. Node ≥18, API-token mode via `ZENDESK_SUBDOMAIN/EMAIL/API_TOKEN`. |
 | D2 | **Read-only allowlist + `add_ticket_comment` (internal only)** | Upstream exposes 55 tools including delete/update and three tools that send attachments to the Anthropic API and a third-party converter. |
 | D3 | Languages: **da, en, de** | Actual ticket mix. Three spaCy models; per-chunk language detection. |
-| D4 | Redact **all persons and all non-allowlisted organizations**; `config/allowlist.txt` protects product/vendor names | GDPR-strict; RAG keeps technical content. |
+| D4 | ~~Redact all persons and all non-allowlisted organizations~~ **Reversed 2026-09-11: redact all persons; organization/company names are no longer redacted at all** (business data, not personal data); `config/allowlist.txt` still protects product/vendor names from misdetection as a redacted personal-data type | Originally GDPR-strict, RAG keeps technical content. Reversed by the GDPR owner after a real ticket left `SpareBank1 Nord-Norge`/`TIETOEVRY` unredacted (GLiNER scored the org below the pass-2 gate) — ruled that keeping vendor/bank names is acceptable and more useful than the org-redaction attempt it replaces. A company name that happens to contain a person's name (e.g. `Mette Sørensen ApS`, common for Danish sole traders) counts as a company name, not personal data, and is therefore not redacted either — a deliberate, known edge case, not a bug. |
 | D5 | Single `[PERSON_n]` type, no role split | Role is only knowable for metadata fields; a mixed scheme breaks same-value→same-placeholder. |
 | D6 | Per-ticket placeholder table **shared by both passes**, word-subset matching within a type | "Mette" after "Mette Sørensen" → same placeholder. In-memory only, per tool call. |
 | D7 | **Dedicated Ubuntu VM** hosts proxy + sidecars; proxy exposed over **Streamable HTTP** with bearer tokens | Confines raw PII and credentials to one host; laptops run only Claude Code. Existing `vm-devops-automation` (B2s, 3.8 GB, shared) is unsuitable. |
@@ -217,7 +217,7 @@ policy; a `type:user` search returns user objects, which the field policy reduce
 | Entity | Placeholder | Found by |
 |---|---|---|
 | Person name | `[PERSON_n]` | Presidio NER (da/en/de), GLiNER |
-| Organization | `[ORG_n]` | Presidio NER, GLiNER; allowlist exempt |
+| Organization | `[ORG_n]` | detected but not redacted — organizations are business data, decision of 2026-09-11 (D4) |
 | Email | `[EMAIL_n]` | Presidio pattern |
 | Phone | `[PHONE_n]` | Presidio pattern, regions DK/DE/GB/US |
 | Danish CPR | `[CPR_n]` | custom recognizer |
@@ -240,7 +240,11 @@ Expense Management, Payment Management, Business Central, Dynamics 365, Dynamics
 Microsoft, Azure, Zendesk, OneDrive, SharePoint, Outlook. Owned by the GDPR owner via
 CODEOWNERS. A word-subset match additionally requires the span to have at least two words, or
 to be a single word of at least four alphabetic characters; and a detected span that overlaps
-an allowlisted occurrence is split around it, so the allowlisted text always survives.
+an allowlisted occurrence is split around it, so the allowlisted text always survives. Since
+the 2026-09-11 reversal of D4, organization names are never redacted in the first place, so the
+allowlist no longer exists to exempt organizations from redaction — its remaining purpose is
+guarding product/vendor terms (e.g. "Business Central", "NAV") against being misdetected as a
+still-redacted personal-data type (chiefly `PERSON`/`USERNAME`).
 
 ### 6.3 Unification (D6)
 
@@ -512,6 +516,8 @@ ZendeskSanitizing/
 - Tool surface is a read-only allowlist plus internal-only `add_ticket_comment`; upstream's
   attachment-analysis tools are blocked as third-party side channels (not in the original spec).
 - Languages are da/en/de, not Danish only.
-- `[PERSON_n]` replaces `[CUSTOMER_n]`; all persons and non-allowlisted orgs are redacted.
+- `[PERSON_n]` replaces `[CUSTOMER_n]`; all persons are redacted (see D4 for the 2026-09-11
+  reversal of the original all-persons-and-non-allowlisted-orgs scope: organizations are no
+  longer redacted).
 - Runtime is Bun; `tests/` not `test/`; repo root is the project root.
 - CPR validation is date-based only (no modulus-11).

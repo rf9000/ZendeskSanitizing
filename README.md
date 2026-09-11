@@ -237,8 +237,12 @@ All variables are `ZSAN_*`, validated with Zod at startup (see `.env.example`):
 Every tool call logs one line to stderr with entity **counts only** — never values:
 
 ```
-[info] get_ticket 4711: PERSON 3, ORG 1, EMAIL 1, PHONE 1 (pass1 4, pass2 2) 812ms
+[info] get_ticket 4711: PERSON 3, EMAIL 1, PHONE 1 (pass1 4, pass2 2) 812ms
 ```
+
+Organization/company names are not redacted (decision of 2026-09-11) — only personal data
+(persons, emails, phones, CPR, IBAN, cards, addresses, usernames) is, so `ORG` never appears
+in this line with a nonzero count.
 
 A redaction guard also scans every log line for email/CPR/IBAN-shaped substrings and masks
 them before they're written, as a defense-in-depth backstop against a bug that accidentally
@@ -246,9 +250,18 @@ formats raw PII into a log message.
 
 ## Known limitations
 
-- **`ORG_SUFFIX`/allowlist edge cases.** The org-suffix recognizer and the allowlist are both
-  pattern/term based; unusual company-name shapes or terms not yet in `config/allowlist.txt`
-  can be misclassified in either direction.
+- **Organization/company names are not redacted (decision of 2026-09-11).** Only personal
+  data — persons, emails, phones, CPR, IBAN, cards, addresses, usernames — is redacted; vendor,
+  partner, and customer organization names are treated as business data and pass through
+  unchanged. By policy, a company name that happens to contain a person's name (e.g. `Mette
+  Sørensen ApS`, common for Danish sole traders) counts as a company name, not personal data,
+  and is deliberately not targeted for redaction — but nothing in this codebase specifically
+  detects "this is a company name" to suppress a person-name match within it, so whether the
+  embedded name still gets redacted depends on what the person-name detector does with that
+  span in context (see the design spec's D4 amendment for the measured behavior). This is a
+  known, accepted risk of the policy, not a bug. `config/allowlist.txt` still guards against
+  product/service names being misdetected as a still-redacted personal-data type (e.g.
+  `PERSON`).
 - **Bare-phone/CPR coverage relies on pattern recognizers.** Phone and CPR detection (including
   the bare 10-digit CPR case) comes from the ad-hoc regex recognizers in `config/recognizers/`,
   gated by `isValidCpr`'s date check for CPR — not from a semantic understanding of the text.

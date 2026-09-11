@@ -4,7 +4,6 @@ import { SanitizerError, type Chunk, type EntityType, type Pass1Client, type Spa
 
 export const PRESIDIO_ENTITY_MAP: Record<string, EntityType> = {
   PERSON: "PERSON",
-  ORGANIZATION: "ORG",
   EMAIL_ADDRESS: "EMAIL",
   PHONE_NUMBER: "PHONE",
   DK_PHONE: "PHONE",

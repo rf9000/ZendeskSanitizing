@@ -29,7 +29,7 @@
     }
   ],
   "expected": {
-    "absent": ["Jonathan Whitfield", "Whitfield", "Jonathan", "jonathan@fabrikam-test.co.uk", "+44 20 7946 0958", "4111 1111 1111 1111", "Fabrikam Ltd"],
-    "present": ["Business Central", "Document Capture", "+100", "2.3.4", "5201", "open", "high"]
+    "absent": ["Jonathan Whitfield", "Whitfield", "Jonathan", "jonathan@fabrikam-test.co.uk", "+44 20 7946 0958", "4111 1111 1111 1111"],
+    "present": ["Business Central", "Document Capture", "+100", "2.3.4", "5201", "open", "high", "Fabrikam Ltd"]
   }
 }

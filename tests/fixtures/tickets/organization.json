@@ -15,7 +15,7 @@
     "updated_at": "2026-01-05T09:12:00Z"
   },
   "expected": {
-    "absent": ["Contoso ApS", "contoso-test.dk", "contoso-support-test.dk", "Mette Sørensen", "010190-1234", "VIP account", "Primary contact"],
-    "present": ["500010", "partner", "gold_tier", "shared_tickets", "false"]
+    "absent": ["contoso-test.dk", "contoso-support-test.dk", "Mette Sørensen", "010190-1234", "VIP account", "Primary contact"],
+    "present": ["500010", "partner", "gold_tier", "shared_tickets", "false", "Contoso ApS"]
   }
 }

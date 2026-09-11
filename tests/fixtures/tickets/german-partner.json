@@ -29,8 +29,8 @@
     }
   ],
   "expected": {
-    "absent": ["Katharina Vogelsang", "Vogelsang", "Katharina", "katharina@muster-test.de", "+49 30 901820", "DE89370400440532013000", "Muster GmbH"],
-    "present": ["Business Central", "Document Capture", "6302", "open"]
+    "absent": ["Katharina Vogelsang", "Vogelsang", "Katharina", "katharina@muster-test.de", "+49 30 901820", "DE89370400440532013000"],
+    "present": ["Business Central", "Document Capture", "6302", "open", "Muster GmbH"]
   },
   "expectedPass2": {
     "absent": ["Musterstraße 12, 10115 Berlin"],

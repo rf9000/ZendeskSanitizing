@@ -25,7 +25,10 @@ d("presidio analyzer contract", () => {
     expect(types.has("PERSON")).toBe(true);
     expect(types.has("EMAIL")).toBe(true);
     expect(types.has("PHONE")).toBe(true);
-    expect(types.has("ORG")).toBe(true);
+    // ORGANIZATION is not asserted: the analyzer may still emit it (sidecars/presidio/nlp.yml is
+    // untouched), but PRESIDIO_ENTITY_MAP no longer maps it, so the client always drops it —
+    // organizations are no longer redacted (decision of 2026-09-11, spec D4).
+    expect(types.has("ORG")).toBe(false);
     if (lang === "da") { expect(types.has("CPR")).toBe(true); expect(types.has("IBAN")).toBe(true); }
     if (lang === "en") expect(types.has("CARD")).toBe(true);
     if (lang === "de") expect(types.has("IBAN")).toBe(true);

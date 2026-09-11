@@ -1,6 +1,11 @@
 # Terms that must never be redacted. One per line. Case-insensitive.
 # A span is also allowed when its words are a subset of a multi-word term here.
 # Single-word terms are protected wherever they appear as whole words — keep them specific.
+#
+# Organization / company names are no longer redacted at all (decision of 2026-09-11,
+# reversing spec decision D4), so this list no longer guards against organizations being
+# over-redacted. It still guards against product/service names being misdetected as PERSON
+# (or another still-redacted personal-data type) by the sanitizer.
 # Owned by the GDPR owner via CODEOWNERS.
 Continia
 Continia Software

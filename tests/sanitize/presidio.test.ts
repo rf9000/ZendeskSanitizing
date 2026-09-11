@@ -18,6 +18,10 @@ describe("PresidioClient", () => {
     expect(PRESIDIO_ENTITY_MAP.INTL_PHONE).toBe("PHONE");
   });
 
+  test("does not map ORGANIZATION (organizations are no longer redacted)", () => {
+    expect(PRESIDIO_ENTITY_MAP.ORGANIZATION).toBeUndefined();
+  });
+
   test("posts text, language and ad-hoc recognizers", async () => {
     let seen: { url: string; body: any } | undefined;
     const client = new PresidioClient({
@@ -39,7 +43,8 @@ describe("PresidioClient", () => {
       ["PERSON", "Mette Sørensen"],
       ["EMAIL", "mette@example.dk"],
       ["CPR", "010190-1234"],
-      // 320190-1234 dropped: invalid date; Aarhus dropped: LOCATION unmapped; Contoso dropped: ORG below 0.4
+      // 320190-1234 dropped: invalid date; Aarhus dropped: LOCATION unmapped;
+      // Contoso dropped despite a high 0.95 score: ORGANIZATION is unmapped (organizations are no longer redacted)
     ]);
     expect(spans.every((s) => s.source === "presidio")).toBe(true);
   });
