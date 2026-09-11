@@ -65,11 +65,12 @@ d(`e2e: every fixture sanitizes clean (pass2=${pass2Enabled ? "gliner" : "off"})
   }
 
   test("scorecard", () => {
-    const byLang: Record<string, { checked: number; leaked: number }> = {};
+    const byLang: Record<string, { checked: number; leakedPass1: number; leakedPass2: number }> = {};
     for (const [, r] of Object.entries(scorecard)) {
-      const l = (byLang[r.lang] ??= { checked: 0, leaked: 0 });
+      const l = (byLang[r.lang] ??= { checked: 0, leakedPass1: 0, leakedPass2: 0 });
       l.checked += r.absentChecked;
-      l.leaked += r.leaked.length + r.leaked2.length;
+      l.leakedPass1 += r.leaked.length;
+      l.leakedPass2 += r.leaked2.length;
     }
     console.error("\n=== scorecard (pass2=" + (pass2Enabled ? "gliner" : "off") + ") ===\n" + JSON.stringify({ byLang, perFixture: scorecard }, null, 2));
   });

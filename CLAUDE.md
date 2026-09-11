@@ -31,6 +31,7 @@ When reporting that something is fixed or done, include the actual test output �
 - `bun test` — unit suite (no network). `bun test tests/sanitize/session.test.ts` for one file; `bun test -t "name"` for one test.
 - `bun run test:contract` — needs Presidio up (`docker compose … --profile laptop up`).
 - `bun run test:e2e` — fixture regression gate; needs Presidio up.
+- `bun run test:e2e:pass2` — same gate with pass 2 enabled and `expectedPass2` asserted; needs Presidio + GLiNER up.
 - `bun run typecheck` — `tsc --noEmit`.
 - `bun run start` — runs the stdio proxy with pass 2 (needs Presidio + GLiNER containers up and `.env` filled). `ZSAN_PASS2=off bun run start` runs Presidio-only.
 

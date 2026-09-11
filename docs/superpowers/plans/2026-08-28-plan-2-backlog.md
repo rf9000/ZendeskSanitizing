@@ -47,6 +47,9 @@ HTTP transport + VM deploy, CI, branch protection, CODEOWNERS, `v0.1.0`.
   field with no boundary — round the hard cut down to a code-point boundary.
 - Logging guard covers the hyphenated CPR shape only (`\d{6}-\d{4}`); plain 10-digit is too
   noisy to guard.
+- 2026-09-11: GLiNER threshold raised 0.4 → 0.65 (bare short tags like 'partner' were mislabeled
+  PERSON at 0.4, and an allowlisted phrase over-redacted); German address + Danish lower-case tag
+  both caught at 0.65.
 
 ## Small code/test polish (non-blocking)
 
