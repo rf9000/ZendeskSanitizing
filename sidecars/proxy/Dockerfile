@@ -10,6 +10,8 @@ COPY package.json bun.lock tsconfig.json ./
 RUN bun install --frozen-lockfile --production
 COPY src ./src
 COPY config ./config
+# scripts/sanitize-texts.ts: the pipeline without Zendesk, for the chain test (docker exec, synthetic text only).
+COPY scripts ./scripts
 ENV ZSAN_TRANSPORT=http
 EXPOSE 8080
 CMD ["bun", "run", "src/server/stdio.ts"]
