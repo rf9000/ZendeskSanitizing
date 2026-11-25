@@ -1,0 +1,89 @@
+# The proxy beside one client stack on the same host (the CB support chatbot), on a host with little memory.
+# A file of its own, not an override of docker-compose.yml:
+#
+#   docker compose -p zsan --env-file deploy/versions.env -f deploy/docker-compose.colocated.yml up -d --build
+#
+# Differences from the `vm` profile of docker-compose.yml:
+#  - No GLiNER container. Pass 2 calls the detect port of the chatbot's privacy filter (`cb-sanitizer`), which has
+#    the same model loaded already (ONNX export). ZSAN_GLINER_MODEL_REF names that export, so the start-up check of
+#    the model still holds. Saves about 1.7 GiB.
+#  - Presidio with the medium spaCy models (about 0.9 GiB in memory instead of 2.3 GiB). It is on an internal
+#    network with the proxy only: no route out, no published port.
+#  - No Caddy and no published port at all. The client reaches the proxy over a shared network as
+#    http://zsan-proxy:8080/mcp with its token from ZSAN_CLIENT_TOKENS.
+#
+# Networks the client stack creates; both must exist before this stack starts:
+#  - ZSAN_CLIENT_NETWORK: the chat application and the proxy.
+#  - ZSAN_DETECT_NETWORK: the privacy filter's detect port and the proxy. Internal. The filter's session API does
+#    not listen on it; check from this stack with the chatbot's `seal-check.ts --must-refuse cb-sanitizer:7410`.
+#
+# Start the privacy filter first and this stack after the filter is healthy, so the models do not load at once.
+# The Zendesk token is in ZSAN_ENV_FILE on the host, written by its owner; it is never in this file.
+services:
+  presidio-analyzer:
+    build:
+      context: ..
+      dockerfile: sidecars/presidio/Dockerfile
+      args:
+        PRESIDIO_ANALYZER_DIGEST: ${PRESIDIO_ANALYZER_DIGEST}
+        SPACY_MODEL_VERSION: ${SPACY_MODEL_VERSION}
+        SPACY_MODEL_SIZE: md
+        SPACY_NLP_FILE: nlp.md.yml
+    image: zsan/presidio-analyzer:${SPACY_MODEL_VERSION}-md-${PRESIDIO_ANALYZER_VERSION}
+    restart: unless-stopped
+    networks: [analyzer]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:3000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 1500m
+
+  proxy:
+    build:
+      context: ..
+      dockerfile: sidecars/proxy/Dockerfile
+    image: zsan/proxy:dev
+    restart: unless-stopped
+    env_file:
+      - ${ZSAN_ENV_FILE:-/opt/zsan/.env}
+    environment:
+      ZSAN_TRANSPORT: http
+      ZSAN_HTTP_PORT: "8080"
+      ZSAN_PRESIDIO_URL: http://presidio-analyzer:3000
+      ZSAN_GLINER_URL: ${ZSAN_DETECT_URL:-http://cb-sanitizer:7411}
+      ZSAN_GLINER_MODEL_REF: ${ZSAN_DETECT_MODEL_REF:-onnx-community/gliner_multi_pii-v1@2e0397a7e8a250d76c37122232b3cbde42c8d629}
+      ZSAN_UPSTREAM_COMMAND: zendesk-mcp
+    networks:
+      analyzer: {}
+      # The way out to Zendesk.
+      egress: {}
+      detect: {}
+      client:
+        aliases: [zsan-proxy]
+    depends_on:
+      presidio-analyzer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bun -e \"const r=await fetch('http://localhost:8080/healthz'); if(!r.ok) process.exit(1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+
+networks:
+  analyzer:
+    internal: true
+  egress: {}
+  client:
+    external: true
+    name: ${ZSAN_CLIENT_NETWORK:-cb-zendesk}
+  detect:
+    external: true
+    name: ${ZSAN_DETECT_NETWORK:-cb-detect}
