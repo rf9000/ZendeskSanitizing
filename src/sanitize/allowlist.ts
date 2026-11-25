@@ -14,7 +14,8 @@ export class Allowlist {
       const words = n.split(" ");
       if (words.length > 1) this.wordSets.push(new Set(words));
 
-      const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\\/-]/g, "\\$&")).join("\\s+");
+      // "-" is not escaped: outside a character class it is literal, and "\-" is a syntax error with the u flag.
+      const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&")).join("\\s+");
       this.termPatterns.push(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "giu"));
     }
   }
