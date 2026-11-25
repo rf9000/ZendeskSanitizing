@@ -61,4 +61,11 @@ describe("Allowlist", () => {
     expect(occ).toEqual([[10, 22]]);
     expect("ordre fra Continia A/S i dag".slice(10, 22)).toBe("Continia A/S");
   });
+
+  test("a term with a hyphen loads and is found", () => {
+    const list = Allowlist.fromText("Add-on Pack");
+    expect(list.isAllowed("add-on pack")).toBe(true);
+    expect(list.findOccurrences("the Add-on Pack is installed")).toEqual([[4, 15]]);
+    expect(list.findOccurrences("the Add on Pack is installed")).toEqual([]);
+  });
 });
