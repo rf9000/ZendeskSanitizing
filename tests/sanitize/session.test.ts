@@ -26,7 +26,7 @@ describe("SanitizeSession", () => {
     expect(out.texts.get("c1")).toBe("[PERSON_1] <[EMAIL_1]> skrev");
     expect(out.counts.PERSON).toBe(2);
     expect(out.counts.EMAIL).toBe(1);
-    expect(out.perPass).toEqual({ pass1: 3, pass2: 0 });
+    expect(out.perPass).toEqual({ pass1: 3, pass2: 0, sweep: 0 });
   });
 
   test("pass 2 runs on pass-1 output and shares the table", async () => {
@@ -37,7 +37,7 @@ describe("SanitizeSession", () => {
     const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "Mette Sørensen bor på Vestergade 12. Hilsen Mette" }]);
     expect(out.texts.get("c1")).toBe("[PERSON_1] bor på [ADDRESS_1]. Hilsen [PERSON_1]");
     expect((deps.pass2 as any).calls[0].text).toBe("[PERSON_1] bor på Vestergade 12. Hilsen Mette");
-    expect(out.perPass).toEqual({ pass1: 1, pass2: 2 });
+    expect(out.perPass).toEqual({ pass1: 1, pass2: 2, sweep: 0 });
   });
 
   test("allowlist filters spans from both passes", async () => {
@@ -78,7 +78,7 @@ describe("SanitizeSession", () => {
   test("empty chunk list → empty output", async () => {
     const out = await new SanitizeSession(base()).sanitize([]);
     expect(out.texts.size).toBe(0);
-    expect(out.perPass).toEqual({ pass1: 0, pass2: 0 });
+    expect(out.perPass).toEqual({ pass1: 0, pass2: 0, sweep: 0 });
   });
 
   test("placeholder numbering follows input order, not completion order, under concurrency", async () => {
@@ -228,7 +228,7 @@ describe("SanitizeSession", () => {
     const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "Hilsen Mette Sørensen Nielsen" }]);
     expect(out.texts.get("c1")).toBe("Hilsen [PERSON_1] [PERSON_2]");
     expect(out.counts.PERSON).toBe(2);
-    expect(out.perPass).toEqual({ pass1: 1, pass2: 1 });
+    expect(out.perPass).toEqual({ pass1: 1, pass2: 1, sweep: 0 });
   });
 
   test("an allowlisted term inside a detected email address survives, rest redacted", async () => {
@@ -244,5 +244,67 @@ describe("SanitizeSession", () => {
     expect(withoutPlaceholders).not.toMatch(/mette/i);
     expect(withoutPlaceholders).not.toMatch(/\.dk/i);
     expect(result).toBe("skriv til [EMAIL_1]continia[EMAIL_2] tak");
+  });
+});
+
+/** Spans for the LAST occurrence of each literal only: a detector that sees a value in one place and misses it in another. */
+function lastOccurrenceOnly(text: string, literals: Array<[string, "PERSON" | "ORG"]>) {
+  return literals.flatMap(([lit, type]) => {
+    const i = text.lastIndexOf(lit);
+    return i < 0 ? [] : [{ start: i, end: i + lit.length, type, score: 0.9, source: "presidio" as const }];
+  });
+}
+
+describe("SanitizeSession known-value sweep", () => {
+  test("a value detected in one place is also redacted where the detectors missed it", async () => {
+    const deps = base({ pass1: fakePass1((c) => lastOccurrenceOnly(c.text, [["Nordvind Trading", "ORG"]])) });
+    const out = await new SanitizeSession(deps).sanitize([
+      { id: "c1", text: "Customer Nordvind Trading is using a PSP. Since Nordvind Trading has many orders, posting is slow." },
+    ]);
+    expect(out.texts.get("c1")).toBe("Customer [ORG_1] is using a PSP. Since [ORG_1] has many orders, posting is slow.");
+    expect(out.counts.ORG).toBe(2);
+    expect(out.perPass).toEqual({ pass1: 1, pass2: 0, sweep: 1 });
+  });
+
+  test("the sweep covers every chunk of the session, also one where nothing was detected", async () => {
+    const deps = base({ pass1: fakePass1((c) => (c.id.startsWith("c2") ? spansByLiteral(c.text, [["Mette Sørensen", "PERSON"]], "presidio") : [])) });
+    const out = await new SanitizeSession(deps).sanitize([
+      { id: "c1", text: "Mette Sørensen ringede i går." },
+      { id: "c2", text: "Hilsen Mette Sørensen" },
+    ]);
+    expect(out.texts.get("c1")).toBe("[PERSON_1] ringede i går.");
+    expect(out.texts.get("c2")).toBe("Hilsen [PERSON_1]");
+  });
+
+  test("a value found by pass 2 is swept too, with whitespace between its words free", async () => {
+    const deps = base({ pass2: fakeDetector("fake", (c) => lastOccurrenceOnly(c.text, [["Nordvind Trading", "ORG"]])) });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "Nordvind\nTrading skrev. Tak, Nordvind Trading" }]);
+    expect(out.texts.get("c1")).toBe("[ORG_1] skrev. Tak, [ORG_1]");
+    expect(out.perPass).toEqual({ pass1: 0, pass2: 1, sweep: 1 });
+  });
+
+  test("the sweep matches whole words in the same case only", async () => {
+    const deps = base({ pass1: fakePass1((c) => lastOccurrenceOnly(c.text, [["Mark", "PERSON"]])) });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "Marketing must mark the order. Mark agrees. Hilsen Mark" }]);
+    expect(out.texts.get("c1")).toBe("Marketing must mark the order. [PERSON_1] agrees. Hilsen [PERSON_1]");
+  });
+
+  test("the sweep leaves an allowlisted term alone", async () => {
+    const deps = base({
+      allowlist: Allowlist.fromText("Business Central"),
+      pass1: fakePass1((c) => lastOccurrenceOnly(c.text, [["Business Central user group", "ORG"]])),
+    });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "Business Central is slow, says the Business Central user group" }]);
+    expect(out.texts.get("c1")).toBe("Business Central is slow, says the Business Central [ORG_1]");
+  });
+
+  test("a fragment that does not start and end with a letter or digit is not swept", async () => {
+    const deps = base({
+      allowlist: Allowlist.fromText("Continia"),
+      pass1: fakePass1((c) => spansByLiteral(c.text, [["mette@continia.dk", "EMAIL"]], "presidio")),
+    });
+    const out = await new SanitizeSession(deps).sanitize([{ id: "c1", text: "skriv til mette@continia.dk eller se side.dk" }]);
+    expect(out.texts.get("c1")).toBe("skriv til [EMAIL_1]continia[EMAIL_2] eller se side.dk");
+    expect(out.perPass.sweep).toBe(0);
   });
 });

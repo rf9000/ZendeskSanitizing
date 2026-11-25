@@ -1,7 +1,7 @@
 import { PLACEHOLDER_RE, type PlaceholderTable } from "./placeholders.ts";
 import type { Span, SpanSource } from "./types.ts";
 
-const SOURCE_RANK: Record<SpanSource, number> = { presidio: 0, gliner: 1, ollama: 2 };
+const SOURCE_RANK: Record<SpanSource, number> = { presidio: 0, gliner: 1, ollama: 2, sweep: 3 };
 
 /** Subtracts `ranges` from `interval`, returning the surviving (possibly empty) sub-intervals. */
 function subtractRanges(interval: [number, number], ranges: Array<[number, number]>): Array<[number, number]> {

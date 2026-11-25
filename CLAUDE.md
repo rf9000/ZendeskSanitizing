@@ -47,7 +47,9 @@ idOnly/sanitize each field by path) → `src/sanitize/session.ts` (one `Sanitize
 tool call: pass 1 = Presidio `analyze` for spans, pass 2 = a `SpanDetector` slot — GLiNER by
 default and required unless `ZSAN_PASS2=off` — re-run on pass 1's already-redacted text; spans become
 `[TYPE_n]` placeholders via a shared per-session table so the same value always gets the same
-placeholder). Everything is fail-closed: an unreachable/timed-out/invalid sanitizer call
+placeholder; last, a known-value sweep — no detector call — searches every piece for other
+occurrences of each value that got a placeholder (whole words, same case), so a value a detector
+found in one place and missed in another is redacted in both). Everything is fail-closed: an unreachable/timed-out/invalid sanitizer call
 throws and the tool call returns an MCP error — the raw payload is never returned as a
 fallback. Fixtures under `tests/fixtures/tickets/` are synthetic by construction and must stay
 that way — never put real ticket data in a fixture, since the e2e suite runs it through a live

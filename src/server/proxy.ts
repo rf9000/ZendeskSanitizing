@@ -77,7 +77,7 @@ export function createProxyServer(deps: ProxyDeps): Server {
         throw new SanitizerError("SANITIZER_INTERNAL", "sanitizer returned the raw result");
       }
       deps.logger.info(
-        `${name} ${ticketIdFrom(args)}: ${formatCounts(sanitized.counts)} (pass1 ${sanitized.perPass.pass1}, pass2 ${sanitized.perPass.pass2}) ${now() - started}ms`,
+        `${name} ${ticketIdFrom(args)}: ${formatCounts(sanitized.counts)} (pass1 ${sanitized.perPass.pass1}, pass2 ${sanitized.perPass.pass2}, sweep ${sanitized.perPass.sweep}) ${now() - started}ms`,
       );
       toReturn = sanitized.result;
     } catch (e) {

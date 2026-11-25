@@ -3,7 +3,8 @@ export type Lang = "da" | "en" | "de";
 export const ENTITY_TYPES = ["PERSON", "ORG", "EMAIL", "PHONE", "CPR", "IBAN", "CARD", "ADDRESS", "USERNAME", "OTHER"] as const;
 export type EntityType = (typeof ENTITY_TYPES)[number];
 
-export type SpanSource = "presidio" | "gliner" | "ollama";
+/** "sweep" = not a detector: another occurrence of a value a detector already found in this session. */
+export type SpanSource = "presidio" | "gliner" | "ollama" | "sweep";
 
 export interface Span {
   start: number;
