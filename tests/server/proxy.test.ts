@@ -22,7 +22,7 @@ function fakeUpstream(over: Partial<UpstreamClient> = {}): UpstreamClient & { ca
 
 const okSanitizer = {
   async sanitize(r: ToolResult) {
-    return { result: { content: [{ type: "text" as const, text: "SANITIZED" }] }, counts: { PERSON: 1 } as any, perPass: { pass1: 1, pass2: 0 } };
+    return { result: { content: [{ type: "text" as const, text: "SANITIZED" }] }, counts: { PERSON: 1 } as any, perPass: { pass1: 1, pass2: 0, sweep: 0 } };
   },
 };
 
@@ -50,7 +50,7 @@ describe("proxy", () => {
     const res = await client.callTool({ name: "get_ticket", arguments: { id: 4711 } });
     expect(up.calls).toEqual([["get_ticket", { id: 4711 }]]);
     expect((res.content as any)[0].text).toBe("SANITIZED");
-    expect(lines.join("\n")).toContain("get_ticket ticket 4711: PERSON 1 (pass1 1, pass2 0) 25ms");
+    expect(lines.join("\n")).toContain("get_ticket ticket 4711: PERSON 1 (pass1 1, pass2 0, sweep 0) 25ms");
     expect(lines.join("\n")).not.toContain("Mette");
   });
 
@@ -109,7 +109,7 @@ describe("proxy", () => {
   });
 
   test("sanitizer returning the raw result unchanged → SANITIZER_INTERNAL", async () => {
-    const identity = { async sanitize(r: ToolResult) { return { result: r, counts: { PERSON: 0 } as any, perPass: { pass1: 0, pass2: 0 } }; } };
+    const identity = { async sanitize(r: ToolResult) { return { result: r, counts: { PERSON: 0 } as any, perPass: { pass1: 0, pass2: 0, sweep: 0 } }; } };
     const client = await connect({ upstream: fakeUpstream(), sanitizer: identity, logger: createLogger({ level: "error", sink: () => {} }) });
     const err = await client.callTool({ name: "get_ticket", arguments: { id: 1 } }).catch((e) => e);
     expect(String(err.message)).toContain("SANITIZER_INTERNAL");

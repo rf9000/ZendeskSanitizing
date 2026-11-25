@@ -14,7 +14,7 @@ function fakeUpstream(): UpstreamClient {
     async close() {},
   };
 }
-const okSanitizer = { async sanitize(_r: ToolResult) { return { result: { content: [{ type: "text" as const, text: "SANITIZED" }] }, counts: {} as never, perPass: { pass1: 0, pass2: 0 } }; } };
+const okSanitizer = { async sanitize(_r: ToolResult) { return { result: { content: [{ type: "text" as const, text: "SANITIZED" }] }, counts: {} as never, perPass: { pass1: 0, pass2: 0, sweep: 0 } }; } };
 const logger = createLogger({ level: "error", sink: () => {} });
 
 const TOKEN_A = "sekret-token-1-abcd";

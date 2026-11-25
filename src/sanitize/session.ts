@@ -18,7 +18,23 @@ export interface SessionDeps {
 export interface SanitizeOutput {
   texts: Map<string, string>;
   counts: Counts;
-  perPass: { pass1: number; pass2: number };
+  perPass: { pass1: number; pass2: number; sweep: number };
+}
+
+/**
+ * The search pattern for other occurrences of a detected value, or null when the value is not
+ * safe to search for. Whole words, same case, any whitespace between its words. Not swept: a
+ * value shorter than 3 characters, one that does not start and end with a letter or digit (a
+ * fragment left when a span was split, like ".dk"), and a short value without a letter (a
+ * number like a year, which would hit unrelated text).
+ */
+export function sweepPattern(value: string): RegExp | null {
+  const v = value.trim();
+  if (v.length < 3 || !/^[\p{L}\p{N}]/u.test(v) || !/[\p{L}\p{N}]$/u.test(v)) return null;
+  if (!/\p{L}/u.test(v) && v.length < 6) return null;
+  // "-" is not escaped: outside a character class it is literal, and "\-" is a syntax error with the u flag.
+  const escaped = v.split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&")).join("\\s+");
+  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "gu");
 }
 
 /** One `splitText` piece, mutated in place as later passes are applied. */
@@ -31,7 +47,7 @@ interface Piece {
 export class SanitizeSession {
   private readonly table = new PlaceholderTable();
   private readonly counts = emptyCounts();
-  private readonly perPass = { pass1: 0, pass2: 0 };
+  private readonly perPass = { pass1: 0, pass2: 0, sweep: 0 };
   private readonly detectLang: (text: string) => Lang;
   private used = false;
 
@@ -98,6 +114,28 @@ export class SanitizeSession {
           const piece = flat[i]!;
           const step = this.apply(piece.text, spans2[i]!);
           this.perPass.pass2 += step.applied.length;
+          piece.text = step.text;
+        }
+      }
+
+      // Known-value sweep: a detector can find a value in one place and miss the same value in
+      // another (other surrounding words, another chunk). Every value that got a placeholder is
+      // searched for in every piece, so the same value is redacted wherever it stands.
+      const patterns = this.table.knownValues().flatMap((known) => {
+        const re = sweepPattern(known.value);
+        return re ? [{ type: known.type, re }] : [];
+      });
+      if (patterns.length > 0) {
+        for (const piece of flat) {
+          const spans: Span[] = [];
+          for (const { type, re } of patterns) {
+            for (const m of piece.text.matchAll(re)) {
+              spans.push({ start: m.index, end: m.index + m[0].length, type, score: 1, source: "sweep" });
+            }
+          }
+          if (spans.length === 0) continue;
+          const step = this.apply(piece.text, spans);
+          this.perPass.sweep += step.applied.length;
           piece.text = step.text;
         }
       }

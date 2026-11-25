@@ -11,7 +11,7 @@ export interface ToolResult {
   [k: string]: unknown;
 }
 export interface ResultSanitizerDeps { newSession: () => SanitizeSession }
-export interface SanitizedResult { result: ToolResult; counts: Counts; perPass: { pass1: number; pass2: number } }
+export interface SanitizedResult { result: ToolResult; counts: Counts; perPass: { pass1: number; pass2: number; sweep: number } }
 
 export function decodeText(text: string): { prefix: string; json: unknown | undefined; raw: string } {
   const start = text.search(/[[{]/);
