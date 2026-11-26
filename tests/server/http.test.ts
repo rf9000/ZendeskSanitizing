@@ -64,7 +64,7 @@ describe("http transport", () => {
     const client = new Client({ name: "t", version: "0" });
     await client.connect(transport);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(["get_ticket"]);
+    expect(tools.map((t) => t.name)).toEqual(["get_ticket", "find_ticket_ids"]);
     const res = await client.callTool({ name: "get_ticket", arguments: { id: 1 } });
     expect((res.content as Array<{ text: string }>)[0]!.text).toBe("SANITIZED");
     await client.close();
@@ -78,8 +78,8 @@ describe("http transport", () => {
       return c;
     };
     const [a, b] = [await mk(), await mk()];
-    expect((await a.listTools()).tools).toHaveLength(1);
-    expect((await b.listTools()).tools).toHaveLength(1);
+    expect((await a.listTools()).tools).toHaveLength(2);
+    expect((await b.listTools()).tools).toHaveLength(2);
     await a.close(); await b.close();
   });
 
@@ -137,7 +137,7 @@ describe("http transport", () => {
 
     // the true owner's token still works
     const { tools } = await clientA.listTools();
-    expect(tools).toHaveLength(1);
+    expect(tools).toHaveLength(2);
     await clientA.close();
   });
 });
@@ -165,7 +165,7 @@ describe("session cap", () => {
     expect(sessionIdA).toBeTruthy();
 
     const b = await mk();
-    expect((await b.c.listTools()).tools).toHaveLength(1);
+    expect((await b.c.listTools()).tools).toHaveLength(2);
 
     const r = await fetch(`${capBase}/mcp`, {
       method: "POST",
