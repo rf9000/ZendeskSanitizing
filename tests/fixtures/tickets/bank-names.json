@@ -1,0 +1,20 @@
+{
+  "lang": "en",
+  "ticket": {
+    "id": 7410,
+    "subject": "Is it possible to run direct communication with Nordea in a UK company?",
+    "description": "Hi, our customer would like to start using Continia Banking in their UK companies. They are using Nordea as bank. We tried Barclays, HSBC, Lloyds and NatWest before. Please call Katrine Vestergaard about it.",
+    "status": "open"
+  },
+  "comments": [
+    {
+      "id": 1, "author_id": 930001, "public": true,
+      "body": "Nordea rejects the file. Danske Bank, Jyske Bank, Sydbank, Nykredit, Handelsbanken and Swedbank accept it. Regards, Katrine Vestergaard",
+      "attachments": []
+    }
+  ],
+  "expected": {
+    "absent": ["Katrine Vestergaard", "Vestergaard", "Katrine"],
+    "present": ["with Nordea in", "using Nordea as bank", "tried Barclays, HSBC, Lloyds and NatWest", "Nordea rejects", "Danske Bank, Jyske Bank, Sydbank, Nykredit, Handelsbanken and Swedbank", "UK companies", "7410"]
+  }
+}

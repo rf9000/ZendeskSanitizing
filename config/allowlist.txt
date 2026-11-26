@@ -29,3 +29,32 @@ Zendesk
 OneDrive
 SharePoint
 Outlook
+
+# Banks (added 2026-11-26). The medium spaCy models, used on a host with little memory, take a bank name on its own
+# for a person ("They are using Nordea as bank"). Only names that are not also first names or common surnames:
+# ING, SEB and Raiffeisen are left out on purpose. The same names are protected in the chatbot's own filter.
+Nordea
+Danske Bank
+Jyske Bank
+Sydbank
+Nykredit
+Spar Nord
+Arbejdernes Landsbank
+Handelsbanken
+Swedbank
+DNB
+Rabobank
+ABN AMRO
+Deutsche Bank
+Commerzbank
+Sparkasse
+Volksbank
+UniCredit
+Erste Bank
+Barclays
+HSBC
+Lloyds
+NatWest
+BNP Paribas
+KBC
+Belfius
