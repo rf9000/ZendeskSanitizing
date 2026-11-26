@@ -156,7 +156,7 @@ docker compose --env-file deploy/versions.env -f deploy/docker-compose.yml --pro
 
 ## Tools exposed
 
-These 9 tools are forwarded; everything else is blocked before it reaches upstream and never
+These 9 tools are forwarded and one (`find_ticket_ids`) is the proxy's own; everything else is blocked before it reaches upstream and never
 appears in `tools/list`:
 
 | Tool | Purpose |
@@ -170,6 +170,7 @@ appears in `tools/list`:
 | `list_organizations` | List organizations |
 | `support_info` | Zendesk instance metadata |
 | `add_ticket_comment` | forwarded — forced internal, placeholder bodies rejected |
+| `find_ticket_ids` | the proxy's own tool: runs `search` for tickets and returns id, status and created_at only, no ticket text, no model call |
 
 `add_ticket_comment` is the one write tool this proxy forwards, and only with outgoing
 inspection (spec §3.2): the proxy always rewrites the call to an internal-only note (any

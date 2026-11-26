@@ -3,6 +3,7 @@ import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError } fr
 import pkg from "../../package.json";
 import { formatCounts, type Logger } from "../logging.ts";
 import type { SanitizedResult, ToolResult } from "../policy/resultSanitizer.ts";
+import { FIND_TICKET_IDS, FindArgsError, parseFindArgs, ticketIdsFrom } from "../policy/findTicketIds.ts";
 import { OutgoingRejectedError, amendToolList, isAllowedTool, rewriteOutgoingArguments } from "../policy/toolPolicy.ts";
 import { SanitizerError } from "../sanitize/types.ts";
 import type { UpstreamClient } from "../upstream/client.ts";
@@ -30,7 +31,7 @@ export function createProxyServer(deps: ProxyDeps): Server {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     try {
       const tools = await deps.upstream.listTools();
-      return { tools: amendToolList(tools) as never };
+      return { tools: [...amendToolList(tools), FIND_TICKET_IDS] as never };
     } catch (e) {
       deps.logger.error(`tools/list: upstream failed (${errName(e)})`);
       throw new McpError(ErrorCode.InternalError, "UPSTREAM_UNAVAILABLE: the Zendesk MCP server did not respond");
@@ -40,6 +41,7 @@ export function createProxyServer(deps: ProxyDeps): Server {
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const name = req.params.name;
     let args = (req.params.arguments ?? {}) as Record<string, unknown>;
+    if (name === FIND_TICKET_IDS.name) return (await findTicketIds(args)) as never;
     if (!isAllowedTool(name)) {
       deps.logger.warn(`${name} blocked`);
       throw new McpError(ErrorCode.InvalidParams, `TOOL_NOT_ALLOWED: ${name} is not available through the sanitizing proxy`);
@@ -87,6 +89,33 @@ export function createProxyServer(deps: ProxyDeps): Server {
     }
     return toReturn as never;
   });
+
+  /** The proxy's own tool: an upstream search reduced to ids. Logs counts only, never the query. */
+  async function findTicketIds(args: Record<string, unknown>): Promise<ToolResult> {
+    let search: ReturnType<typeof parseFindArgs>;
+    try {
+      search = parseFindArgs(args);
+    } catch (e) {
+      deps.logger.warn(`${FIND_TICKET_IDS.name}: arguments refused`);
+      throw new McpError(ErrorCode.InvalidParams, `INVALID_ARGUMENTS: ${e instanceof FindArgsError ? e.message : "bad arguments"}`);
+    }
+    const started = now();
+    let raw: ToolResult;
+    try {
+      raw = await deps.upstream.callTool("search", search);
+    } catch (e) {
+      deps.logger.error(`${FIND_TICKET_IDS.name}: upstream failed (${errName(e)})`);
+      throw new McpError(ErrorCode.InternalError, "UPSTREAM_UNAVAILABLE: the Zendesk MCP server did not respond");
+    }
+    try {
+      const found = ticketIdsFrom(raw);
+      deps.logger.info(`${FIND_TICKET_IDS.name}: ${found.tickets.length} ticket(s) of ${found.count} ${now() - started}ms`);
+      return { content: [{ type: "text", text: JSON.stringify(found) }] };
+    } catch (e) {
+      deps.logger.error(`${FIND_TICKET_IDS.name}: SANITIZER_INTERNAL (${errName(e)})`);
+      throw new McpError(ErrorCode.InternalError, `SANITIZER_INTERNAL: ${WITHHELD}`);
+    }
+  }
 
   return server;
 }

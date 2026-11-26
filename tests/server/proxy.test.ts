@@ -40,7 +40,7 @@ describe("proxy", () => {
     const lines: string[] = [];
     const client = await connect({ upstream: fakeUpstream(), sanitizer: okSanitizer, logger: createLogger({ level: "debug", sink: (l) => lines.push(l) }) });
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual(["get_ticket", "search", "add_ticket_comment"]);
+    expect(tools.map((t) => t.name)).toEqual(["get_ticket", "search", "add_ticket_comment", "find_ticket_ids"]);
   });
 
   test("tools/call forwards, sanitizes, logs counts only", async () => {
@@ -149,5 +149,41 @@ describe("proxy", () => {
     const err = await client.callTool({ name: "add_ticket_comment", arguments: { id: 1, body: { text: "hi" } } }).catch((e) => e);
     expect(String(err.message)).toContain("OUTGOING_REJECTED: the comment body must be a plain string");
     expect(up.calls).toEqual([]);
+  });
+
+  test("find_ticket_ids searches upstream and returns ids only, without the sanitizer", async () => {
+    const hits = { results: [{ id: 4711, result_type: "ticket", status: "new", created_at: "2026-11-26T08:15:00Z", subject: "Mette Sørensen" }], count: 1 };
+    const up = fakeUpstream({ async callTool(name, args) { up.calls.push([name, args]); return { content: [{ type: "text", text: JSON.stringify(hits) }] }; } });
+    const lines: string[] = [];
+    const never = { async sanitize(): Promise<never> { throw new Error("the sanitizer must not run"); } };
+    const client = await connect({ upstream: up, sanitizer: never, logger: createLogger({ level: "info", sink: (l) => lines.push(l) }) });
+    const res = await client.callTool({ name: "find_ticket_ids", arguments: { query: "status:new tags:banking", limit: 5 } });
+    expect(up.calls).toEqual([["search", { query: "type:ticket status:new tags:banking", sort_by: "created_at", sort_order: "desc", per_page: 5 }]]);
+    expect(JSON.parse((res.content as any)[0].text)).toEqual({ count: 1, tickets: [{ id: 4711, status: "new", created_at: "2026-11-26T08:15:00Z" }] });
+    expect(lines.join(" | ")).toContain("find_ticket_ids: 1 ticket(s)");
+    expect(lines.join(" | ")).not.toContain("banking");
+  });
+
+  test("find_ticket_ids with bad arguments never reaches upstream", async () => {
+    const up = fakeUpstream();
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "find_ticket_ids", arguments: { query: "type:user x" } }).catch((e) => e);
+    expect(String(err.message)).toContain("INVALID_ARGUMENTS");
+    expect(up.calls).toEqual([]);
+  });
+
+  test("find_ticket_ids withholds a result it cannot read, without payload", async () => {
+    const up = fakeUpstream({ async callTool() { return { content: [{ type: "text", text: "Mette Sørensen" }] }; } });
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "find_ticket_ids", arguments: { query: "status:new" } }).catch((e) => e);
+    expect(String(err.message)).toContain("SANITIZER_INTERNAL");
+    expect(JSON.stringify(err)).not.toContain("Mette");
+  });
+
+  test("find_ticket_ids maps an upstream failure to UPSTREAM_UNAVAILABLE", async () => {
+    const up = fakeUpstream({ async callTool() { throw new Error("EPIPE"); } });
+    const client = await connect({ upstream: up, sanitizer: okSanitizer, logger: createLogger({ level: "error", sink: () => {} }) });
+    const err = await client.callTool({ name: "find_ticket_ids", arguments: { query: "status:new" } }).catch((e) => e);
+    expect(String(err.message)).toContain("UPSTREAM_UNAVAILABLE");
   });
 });
